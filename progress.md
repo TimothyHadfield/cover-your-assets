@@ -1,7 +1,7 @@
 # Cover Your Assets — progress
 
 ## START HERE
-Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-20 (real-table look).
+Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-20 (edge pass: weird scenarios).
 
 ## Goal right now
 Phase-2 games project: exact rules, play vs computers or online players, hint, odds, real-table tracker, data lab, original art. Built and live; waiting on Tim's feedback.
@@ -9,7 +9,8 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 ## Status
 | Part | State |
 |---|---|
-| Rules engine (classic 110-card deck, 2021 deck, advanced, 2-3p draft, teams house rule, 4 game lengths) | Done, 92 engine tests |
+| Rules engine (classic 110-card deck, 2021 deck, advanced, 2-3p draft, teams house rule, 4 game lengths) | Done, 92 engine tests + 28 edge tests (`tests/edge.test.js`) |
+| Edge pass (2026-10-20) | Done: 48 weird scenarios, 12 failed on live, 12 fixed. See "Edge scenarios" below |
 | Computers easy / medium / hard (dollar-EV scorer) | Done; measured in Lab (hard 92% vs 3 medium, 4p) |
 | Hint, Coach, odds chips (steal %, top-set risk, discard gift risk) | Done |
 | Table tab (real-table score and stack tracker) | Done |
@@ -43,6 +44,22 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 | Steal or defend a set ≥ $100K (you) | celebrate big | sparkles at your stack |
 | Game over | celebrate win (you/your team, or any person on this phone) / lose | confetti in money colours |
 
+## Edge scenarios (2026-10-20)
+48 tested (35 UI in WebKit, 10 engine, online room, odd layouts). Failed on live and fixed:
+| Scenario | Was | Now |
+|---|---|---|
+| 6 players on phone | names cut to 1 letter | name over money, ellipsis |
+| Pass-and-play hand-off | next hand face-up behind cover, odds leaked on laptop, cover lost on reload | face-down hand, odds hidden, cover restored |
+| Same game in two tabs | two diverging games | background tab adopts the newer save |
+| Tie at the top | no explanation | "Tied at the top: one more round decides it." (`E.extraRound`) |
+| Two players same name | identical | "Ann 2" |
+| ? tip then Back | tip stayed | closes |
+| Empty stack spot | off-centre | centred |
+| ×N badge | covered the card picture | on the card corner |
+| $1,005,000 | "$1.00M" | "$1.005M" |
+| Tracker End round x2 / deck switch | banked empty round / NaN | toast / no NaN |
+Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked storage, light mode, empty deck, 320/landscape/zoom 200%/1920, animations off, 25-card hand, draft offer on SE, every variant computer-only. Scripts and screens: 10-20 scratchpad `edge/cover-your-assets/` (not in repo).
+
 ## Standing instructions (Tim's words)
 - "build regular play online with a computer or other online players for all the games and their common varients that match exactly the play of the in-person game."
 - "Make sure to get everything right like rules and artwork and specific numbers of cards, routes, details, etc."
@@ -51,7 +68,12 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 
 - (2026-10-20) "make sure that each of the games also have a look to them so that the game (either board or card layout) looks almost identical to how the board or card layout looks like in real life ... Make the decks look like actual decks ... It should look kind of like you're looking through a camera that is connected to a user's glasses that is playing in real life (not actually, but the layout and style of everything should be similar)."
 
+- (2026-10-20) "I've noticed the games often have good user interfaces but could be improved especially when a scenario happens that the game might've not really thought about or whatnot. Could you focus on making each game perfect especially in scenarios that the game doesn't expect or are a little weird."
+
 ## Traps
+- Playwright `click()` waits for animations, so computers move meanwhile; for timing tests click in-page (`el.click()`).
+- Pass-and-play (2+ people on one device): the "I'm X" cover shows at load and on reload; tests must click it first.
+- `.empty-stack.tbl-spot`: `inset:auto` must come before `left/top` or it cancels them.
 - Never use class `top` on table elements: `.top` is the header bar (it drew a stray line under stacks once).
 - Hand cards are positioned by `--x/--y/--r` in `transform`; animate them with `translate`/`rotate` properties (see `handIn`, `turnUp`), never `transform`, or they snap to the left.
 - Playwright `tap()` on hand cards times out (live before and after this change); `click()` works. Not seen on a real phone yet.
@@ -78,7 +100,8 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 - Online with 3+ real people and host takeover (shared layer has its own emulator tests).
 - Sounds never heard (no audio headless); real iPhone sound + feel unchecked. Online effects only reasoned (same view diff), not run in two browsers.
 - Design pass: online lobby, offer/pick overlays and draft piles not re-screenshotted (CSS shared with checked screens).
-- Real-table look: draft piles (2021 deck, 2-3p), teams, 5-6 players and online room not screenshotted; deal flight frames not captured (headless too fast/slow), only "no leftover ghosts, no errors". The required reviewer agent could not run (subagent limit hit twice); self-reviewed instead. Real card layout details beyond "engraved border, per-type colour, name + value" not found online.
+- Edge pass: draft piles, teams 4/6, 6 players and online lobby + table now screenshotted (phone, localhost). Table-look reviewer ran; its layout ideas (challenge panel covering the hand on phone, app-like count badges, score-pad style, laptop empty band) left for Tim. Two-tab sync tested only in one headless browser context.
+- Real-table look (old note): deal flight frames not captured; deal flight frames not captured (headless too fast/slow), only "no leftover ghosts, no errors". The required reviewer agent could not run (subagent limit hit twice); self-reviewed instead. Real card layout details beyond "engraved border, per-type colour, name + value" not found online.
 
 ## Rejected / parked
 - ~~Card-counting overlay~~ duplicate of unseen grid. ~~Bluff model~~ no human data. ~~Newest-printing deck~~ values unknown. See `docs/ideas.md`.

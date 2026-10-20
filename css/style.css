@@ -372,7 +372,7 @@ select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg x
 .card.tbl-card svg { height: 100%; }
 .set .card.tbl-card { border-radius: calc(var(--card-w, 30px) * .075); box-shadow: 0 1px 1px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.35); }
 .set .cnt { background: #1b1b1f; color: #fff; border: 0; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
-.empty-stack.tbl-spot { position: absolute; left: 50%; top: 50%; inset: auto; transform: translate(-50%, -50%); aspect-ratio: 63 / 88; height: auto; margin: 0; }
+.empty-stack.tbl-spot { position: absolute; inset: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); aspect-ratio: 63 / 88; height: auto; margin: 0; }
 
 /* opponents: seats round the far edge, each with a name plate, their fanned backs and their stack */
 .opps { gap: 4px; align-items: start; }
@@ -493,3 +493,13 @@ select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg x
   .pile .slot { --card-w: 80px; }
   .hand { height: 156px; }
 }
+
+/* edge pass (2026-10-20) */
+/* 5-6 players on a phone: the name gets its own line above the money so it can be read */
+.opps.tight .opp .nm { flex-direction: column; gap: 0; width: 100%; }
+.opps.tight .opp .nm .tbl-plate { max-width: 100%; padding: 1px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opps.tight .opp .nm .tv { font-size: 11px; line-height: 14px; }
+.opps.tight .opp .chip { bottom: 34px; }
+/* pass screen on a shared phone: the next person's cards wait face down */
+.hand .handback { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); }
+.hand .handback .card { position: absolute; left: 0; bottom: 0; transform-origin: 50% 100%; }

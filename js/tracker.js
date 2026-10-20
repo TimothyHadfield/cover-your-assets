@@ -21,7 +21,8 @@
   }
   function unseen() {
     var c = deckCounts(), tot = 0;
-    T.players.forEach(function (p) { p.sets.forEach(function (s) { s.cards.forEach(function (t) { c[t]--; }); }); });
+    // cards of a type this deck doesn't have (deck switched mid-round) are ignored; counts never go below 0
+    T.players.forEach(function (p) { p.sets.forEach(function (s) { s.cards.forEach(function (t) { if (c[t] > 0) c[t]--; }); }); });
     Object.keys(c).forEach(function (k) { tot += c[k]; });
     return { byType: c, total: tot };
   }
@@ -136,8 +137,10 @@
     if (t.dataset.ttEd) { snap(); T.edition = t.value; save(); render(); }
   });
   $('ttEnd').addEventListener('click', function () {
-    snap();
     var r = T.players.map(stackVal);
+    // a second tap (or a tap before anyone has a set) must not bank an empty round
+    if (!T.players.some(function (p) { return p.sets.length; })) { APP.toast('No sets on the table yet.'); return; }
+    snap();
     T.players.forEach(function (p, i) { p.total += r[i]; p.sets = []; });
     T.history.push(r); T.round++;
     var best = Math.max.apply(null, T.players.map(function (p) { return p.total; }));

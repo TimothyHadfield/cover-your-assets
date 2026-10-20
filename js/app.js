@@ -32,7 +32,8 @@
 
   // ---------- money format ----------
   function money(v) {
-    if (v >= 1000000) return '$' + (v / 1000000).toFixed(v % 1000000 ? 2 : 0) + 'M';
+    // $1,005,000 must not read as "$1.00M" next to $1,000,000: keep up to 3 decimals, drop trailing zeros
+    if (v >= 1000000) return '$' + String(+(v / 1000000).toFixed(3)) + 'M';
     if (v >= 1000) return '$' + Math.round(v / 1000) + 'K';
     return '$' + v;
   }
@@ -55,6 +56,10 @@
     return st.phase === 'battle' || st.phase === 'offer' ? base * 1.3 : base;
   }
   function humans() { var o = []; S.seats.forEach(function (s, i) { if (s.kind === 'human') o.push(i); }); return o; }
+  // people at the running game's table (Settings may have changed since it was dealt)
+  function tableHumans() { var o = []; (host && host.seats || []).forEach(function (s, i) { if (s.kind === 'human') o.push(i); }); return o; }
+  // several people on one phone and the next one hasn't said "I'm X" yet: their cards stay hidden
+  function covered(v) { return passCover && !online() && tableHumans().length > 1 && v.phase !== 'roundEnd' && v.phase !== 'gameOver'; }
 
   function newGame() {
     if (online()) { var h = host; host = null; window.CYANet.leave(); if (h) h.stop(); }
@@ -76,7 +81,12 @@
   }
   function save() { if (host && !host.online) LS.set('cya.game', { state: host.state, seats: host.seats, me: me }); }
 
-  function seatName(s) { return host && host.seats[s] ? host.seats[s].name : NAMES[s]; }
+  function seatName(s) {
+    var nm = (host && host.seats[s] && host.seats[s].name) || NAMES[s] || 'Seat ' + (s + 1);
+    // two players with the same name: the later seats get a number ("Ann", "Ann 2")
+    var k = 1; for (var j = 0; host && j < s; j++) if (host.seats[j] && host.seats[j].name === nm) k++;
+    return k > 1 ? nm + ' ' + k : nm;
+  }
   function V() { return host.viewFor(me); }
 
   // ---------- online room (js/net.js supplies a host with the same interface) ----------
@@ -188,7 +198,8 @@
       html += '<div class="set' + (top && freshTop ? ' enter' : '') + '" style="z-index:' + (i - from + 1) + ';transform:translate(' + (j.x - up * .4) + 'px,' + (j.y - up) + 'px) rotate(' + rot.toFixed(1) + 'deg)">';
       if (other != null) html += '<div class="card tbl-card" style="--card-w:' + w + 'px;left:' + (-w / 2 + w * .26) + 'px;top:' + (-h / 2 - 3) + 'px;width:' + w + 'px;transform:rotate(6deg)">' + A.face(st.cards[other].type, st.cards[other].value) + '</div>';
       html += '<div class="card tbl-card" style="--card-w:' + w + 'px;left:' + (-w / 2 - w * .12) + 'px;top:' + (-h / 2 + 2) + 'px;width:' + w + 'px">' + A.face(st.cards[asset].type, st.cards[asset].value) + '</div>';
-      if (top && set.cards.length > 2) html += '<span class="cnt" style="transform:rotate(' + (-rot).toFixed(1) + 'deg)">×' + set.cards.length + '</span>';
+      // card count sits on the top card's lower corner so the asset picture stays visible
+      if (top && set.cards.length > 2) html += '<span class="cnt" style="left:' + (w * .3).toFixed(1) + 'px;top:' + (h * .34).toFixed(1) + 'px;right:auto;transform:translate(-50%,-50%) rotate(' + (-rot).toFixed(1) + 'deg)">×' + set.cards.length + '</span>';
       html += '</div>';
     }
     return html;
@@ -319,7 +330,7 @@
     else if (k === 'create') netCreate();
     else if (k === 'join') netJoin();
   });
-  function myName() { var n = ($('netName') && $('netName').value.trim()) || S.netName || 'Player'; S.netName = n.slice(0, 16); saveSettings(); return S.netName; }
+  function myName() { var n = ($('netName') && $('netName').value.trim()) || S.netName || 'Player'; S.netName = Array.from(n).slice(0, 16).join(''); saveSettings(); return S.netName; } // never cut an emoji in half
   function netBusy(on) { document.querySelectorAll('[data-net="create"],[data-net="join"]').forEach(function (b) { b.disabled = on; }); }
   function netCreate() {
     var seats = S.seats.slice(0, S.players).map(function (s, i) { return i === 0 ? 'human' : s.kind === 'human' ? 'empty' : { kind: 'computer', name: s.name || NAMES[i] }; });
@@ -347,6 +358,8 @@
     var cands = candidates(v), html = '';
     var wide = window.innerWidth >= 900, w = wide ? (window.innerHeight < 820 ? 36 : 46) : (window.innerHeight < 460 ? 20 : 26), bw = wide ? (window.innerHeight < 820 ? 22 : 28) : 15;
     var order = oppOrder(v);
+    // many seats on a narrow phone: name on its own line above the money so it stays readable
+    $('opps').classList.toggle('tight', !wide && ($('opps').clientWidth || window.innerWidth) / order.length < 110);
     order.forEach(function (s, oi) {
       var tgt = cands.filter(function (a) { return (a.t === 'challenge' || a.t === 'swap' || a.t === 'move') && a.target === s; });
       var isTurn = E.toAct(v) === s && v.phase !== 'roundEnd' && v.phase !== 'gameOver';
@@ -406,7 +419,7 @@
     var k = v.stacks[me], w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 44 : 56) : 36;
     var fresh = (lastSeen.sets[me] || 0) < k.length; lastSeen.sets = v.stacks.map(function (x) { return x.length; });
     var info = '<div class="big">' + money(E.stackValue(v, me)) + '</div><div>' + k.length + ' set' + (k.length === 1 ? '' : 's') + ' this round</div>';
-    if (S.odds && k.length) {
+    if (S.odds && k.length && !covered(v)) {
       var r = O.topRisk(v, me, E);
       if (r.safe) info += '<div class="risk" style="background:' + scale(1) + '">Nest egg: safe <button class="q" data-q="nest">?</button></div>';
       else info += '<div class="risk" style="background:' + scale(1 - r.anyBeat) + '">' + pct(r.anyBeat) + ' risk · ' + money(r.value) + ' <button class="q" data-q="risk">?</button></div>';
@@ -419,6 +432,11 @@
   function renderHand(v) {
     var h = v.hands[me];
     if (!Array.isArray(h)) { $('hand').innerHTML = ''; return; }
+    if (covered(v)) { // pass screen up: show the hand face down until the next person says it's them
+      var bw2 = Math.min(64, Math.floor(($('hand').clientWidth || 300) / (1 + .45 * Math.max(1, h.length - 1))) - 2);
+      $('hand').innerHTML = '<div class="handback">' + backFanHTML(h.length, Math.max(24, bw2)) + '</div>';
+      lastSeen.hand = []; return;
+    }
     var hintIds = hint ? handIds(hint.a).concat(hint.a.t === 'pairDiscard' ? [hint.a.card] : []) : [];
     var prev = lastSeen.hand, firstLook = !prev.length;
     // held like real cards: a fan along the bottom edge, ends dipping and turned out a little
@@ -520,6 +538,7 @@
   function renderSide(v) {
     if (window.innerWidth < 900) return;
     var html = '';
+    if (covered(v)) { $('oddsPanel').innerHTML = ''; return; } // odds come from the hidden hand
     if (S.odds && v.stacks[me].length) {
       var r = O.topRisk(v, me, E);
       html += '<div class="o-row"><span>Your top set</span><span>' + money(r.value) + '</span></div>';
@@ -552,7 +571,7 @@
   function renderOverlay(v) {
     var ov = $('overlay'), html = '';
     var t = E.toAct(v), mine = t === me && host.seats[me].kind === 'human';
-    if (passCover && humans().length > 1 && v.phase !== 'roundEnd' && v.phase !== 'gameOver') {
+    if (covered(v)) {
       html = '<div class="panel" style="text-align:center"><h2>Pass to ' + esc(seatName(me)) + '</h2><div class="sub">Others look away.</div><div class="row"><button class="btn" data-ov="ready">I\'m ' + esc(seatName(me)) + '</button></div></div>';
     } else if (v.phase === 'battle') {
       var b = v.battle, set = v.stacks[b.defender][b.index], L = mine ? E.legal(v) : [];
@@ -614,7 +633,7 @@
         (v.cfg.format === 'bestof2' ? '<td>' + (E.units(v, v.roundWins).vals[i] / seats.length) + '</td>' : '') + '</tr>';
     }).join('');
     var title = v.phase === 'gameOver' ? (v.winner.seats.indexOf(me) >= 0 && host.seats[me].kind === 'human' ? 'You win!' : v.winner.seats.map(seatName).join(' & ') + (v.winner.seats.length > 1 || seatName(v.winner.seats[0]) === 'You' ? ' win' : ' wins')) : 'Round ' + v.round + ' done';
-    var sub = v.phase === 'gameOver' ? 'Final totals.' : (v.cfg.format === 'million' ? 'First to $1,000,000 wins.' : v.cfg.format === 'three' ? 'Highest after 3 rounds.' : v.cfg.format === 'bestof2' ? 'First to win 2 rounds.' : '');
+    var sub = v.phase === 'gameOver' ? 'Final totals.' : E.extraRound(v) ? (v.cfg.format === 'bestof2' ? 'Tied on round wins: one more round decides it.' : 'Tied at the top: one more round decides it.') : (v.cfg.format === 'million' ? 'First to $1,000,000 wins.' : v.cfg.format === 'three' ? 'Highest after 3 rounds.' : v.cfg.format === 'bestof2' ? 'First to win 2 rounds.' : '');
     var c = S.coach && coach.moves ? '<div class="sub" style="margin-top:8px">Coach: you left about <b>' + money(Math.round(coach.lost)) + '</b> on the table over ' + coach.moves + ' choices.</div>' : '';
     return '<div class="panel scorepad"><h2>' + esc(title) + '</h2><div class="sub">' + sub + '</div><table class="scores"><tr><th>Player</th><th>Round</th><th>Total</th>' + (v.cfg.format === 'bestof2' ? '<th>Wins</th>' : '') + '</tr>' + rows + '</table>' + c +
       '<div class="row">' + (v.phase === 'gameOver' ? '<button class="btn" data-ov="new">' + (online() ? 'Leave room' : 'New game') + '</button>' :
@@ -635,7 +654,7 @@
   document.addEventListener('click', function (ev) {
     var t = ev.target.closest('[data-q]'); if (t) { showTip(t); ev.stopPropagation(); return; }
     hideTip();
-    var c = ev.target.closest('#hand .card'); if (c) { onHandTap(+c.dataset.id, c); return; }
+    var c = ev.target.closest('#hand .card'); if (c) { if (c.dataset.id != null) onHandTap(+c.dataset.id, c); return; }
     var b = ev.target.closest('[data-do]');
     if (b) { var cands = $('bar')._cands || []; var a = cands[+b.dataset.do]; if (a) act(a); return; }
     var x = ev.target.closest('[data-act]');
@@ -710,6 +729,7 @@
   var tabHistory = [];
   function showTab(name, noPush) {
     var cur = LS.get('cya.tab', 'play');
+    hideTip(); // a ? tip belongs to the screen it was opened on
     document.querySelectorAll('.tab').forEach(function (s) { s.hidden = s.id !== 'tab-' + name; });
     document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === name); });
     LS.set('cya.tab', name);
@@ -817,6 +837,9 @@
         S.seats = saved.seats.map(function (s, i) { return Object.assign({}, S.seats[i] || {}, s); }).concat(S.seats.slice(saved.seats.length));
         startHost(saved.state); me = saved.me || 0;
         lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 }; sel = []; mode = null; hint = null;
+        // several people on this phone: after a reload, cover the cards again until the right person taps
+        var t = E.toAct(host.state); passCover = tableHumans().length > 1 && t >= 0 && host.seats[t].kind === 'human';
+        if (passCover) me = t;
         host.schedule();
       } catch (e) { newGame(); }
     } else newGame();
@@ -829,6 +852,21 @@
     showTab(start, true);
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 120); });
+    // the same game open in two tabs: follow the newest move instead of playing two different games
+    window.addEventListener('storage', function (e) {
+      if (e.key !== 'cya.game' || !e.newValue || online()) return;
+      var saved; try { saved = JSON.parse(e.newValue); } catch (x) { return; }
+      if (!saved || !saved.state || !saved.state.cards || (host && host.state && JSON.stringify(host.state) === JSON.stringify(saved.state))) return;
+      var wasMe = me, sameGame = host && host.state && host.state.cards.length === saved.state.cards.length;
+      loadLocal();
+      // only the tab in front runs the computers; a tab in the background just follows
+      if (document.hidden || !document.hasFocus()) host.stop();
+      if (sameGame && !passCover) me = wasMe;
+      render();
+    });
+    function wake() { if (host && !online() && host.paused) { host.paused = false; host.schedule(); } }
+    window.addEventListener('focus', wake);
+    document.addEventListener('pointerdown', wake, true);
   }
   window.CYAApp = { money: money, pct: pct, scale: scale, esc: esc, LS: LS, toast: toast, TIPS: TIPS, get host() { return host; }, get me() { return me; }, newGame: newGame, render: render, useHost: useHost, endOnline: endOnline };
   boot();

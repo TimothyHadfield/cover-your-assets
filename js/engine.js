@@ -504,7 +504,9 @@
     return { seats: seats, vals: vals };
   }
 
-  function checkWinner(st) {
+  function checkWinner(st) { var r = decide(st); return r.tie ? null : r.win; }
+  // would the game be over now, and is it held up only by a tie at the top? -> { win, tie }
+  function decide(st) {
     var f = st.cfg.format, u = units(st, st.totals), best = Math.max.apply(null, u.vals);
     var leaders = []; u.vals.forEach(function (v, i) { if (v === best) leaders.push(i); });
     var done = false;
@@ -512,17 +514,20 @@
     else if (f === 'three') done = st.round >= 3;
     else if (f === 'bestof2') {
       var w = units(st, st.roundWins), bw = Math.max.apply(null, w.vals);
-      var teamDiv = st.cfg.teams ? (st.cfg.players === 4 ? 2 : 2) : 1;
+      var teamDiv = st.cfg.teams ? 2 : 1;
       if (bw / teamDiv >= 2) {
         var top = []; w.vals.forEach(function (v, i) { if (v === bw) top.push(i); });
-        if (top.length === 1) return { seats: w.seats[top[0]], unit: top[0] };
+        if (top.length === 1) return { win: { seats: w.seats[top[0]], unit: top[0] }, tie: false };
+        return { win: null, tie: true };
       }
-      return null;
+      return { win: null, tie: false };
     } else done = best >= st.cfg.target;
-    if (!done) return null;
-    if (leaders.length > 1) return null; // exact tie: play another round
-    return { seats: u.seats[leaders[0]], unit: leaders[0] };
+    if (!done) return { win: null, tie: false };
+    if (leaders.length > 1) return { win: null, tie: true }; // exact tie: play another round
+    return { win: { seats: u.seats[leaders[0]], unit: leaders[0] }, tie: false };
   }
+  // round panel: this round ended in a tie that forces one more round
+  function extraRound(st) { return st.phase === 'roundEnd' && decide(st).tie; }
 
   // ---------- views ----------
   function view(st, seat) {
@@ -537,7 +542,7 @@
   var api = {
     newGame: newGame, apply: apply, legal: legal, view: view, toAct: toAct, normalizeCfg: normalizeCfg,
     scores: scores, stackValue: stackValue, setValue: setValue, topSet: topSet, pairOK: pairOK, matches: matches,
-    canChallengeAt: canChallengeAt, openers: openers, pilesFor: pilesFor, units: units, clone: clone, isLegal: isLegal
+    canChallengeAt: canChallengeAt, openers: openers, pilesFor: pilesFor, units: units, clone: clone, isLegal: isLegal, extraRound: extraRound
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.CYAEngine = api;
 })(this);
