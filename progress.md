@@ -36,6 +36,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 ## Decisions
 - Two decks: Classic (2011-2018) default, New (2021+) with Speed Boat and advanced cards. Newest-printing names not modelled.
 - Teams = labelled house rule (no published source).
+- Lab "Which sets get stolen?" = share of sets stolen at least once (fixed 10-20; it used to divide steals by sets, up to 113%). Sim bookkeeping lives in `tools/lab-stats.js`; `tests/lab.test.js` guards it.
 - Online: round-end "Next round" is pressed by the lowest person seat; computers do it if no person is left.
 - Online computers use the per-seat levels from Settings (`options.levels`).
 
@@ -43,7 +44,6 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 - 2021 deck card names/values per tier: single source (King Panda Games).
 - Real iPhone (only Safari's engine headless at 393 px).
 - Online with 3+ real people and host takeover (shared layer has its own emulator tests).
-- Lab "Which sets get stolen?" shows rates over 100% (e.g. Auto 113%): label says "share of sets", so either the label or the number is off. Not touched in the design pass.
 - Design pass: online lobby, offer/pick overlays and draft piles not re-screenshotted (CSS shared with checked screens).
 
 ## Rejected / parked
