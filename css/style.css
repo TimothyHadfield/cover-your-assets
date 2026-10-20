@@ -352,3 +352,9 @@ select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg x
   .mystack .pilebox { height: 88px; }
   .hand { height: 150px; }
 }
+
+/* Sound & effects rows (js/fx.js) drawn like the other settings rows */
+.fx-set .fx-row { padding: 10px 0; border-top: 0; border-bottom: 1px solid var(--line); font-size: 14px; min-height: 48px; }
+.fx-set .switch span { display: none; }
+.fx-set .seg button[aria-pressed="true"] { background: var(--accent); color: #0f1117; font-weight: 700; }
+.fx-set .fx-why { padding: 6px 0; border-bottom: 1px solid var(--line); }

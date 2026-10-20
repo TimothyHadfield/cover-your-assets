@@ -1,7 +1,7 @@
 # Cover Your Assets — progress
 
 ## START HERE
-Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-20 (visual design pass).
+Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-20 (sounds, celebrations, animations).
 
 ## Goal right now
 Phase-2 games project: exact rules, play vs computers or online players, hint, odds, real-table tracker, data lab, original art. Built and live; waiting on Tim's feedback.
@@ -17,11 +17,36 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 | Online rooms (shared Firebase `online.js`, gameId `cover-your-assets`) | Done; two-browser game played to the end on 2026-10-19 |
 | Art: original SVG faces, back, icons | Done |
 | Visual design pass (2026-10-20) | Done: bigger stacks/piles, turn glow on your area, labelled challenge lanes, 40px taps, compact Table rows, 2-column laptop Settings, fits 1280x720 |
+| Sounds, celebrations, animations (2026-10-20) | Done: `js/fx.js` (copy of `_fx/fx.js`, never edit) + `js/sfx.js` (event diff → cues) + Settings "Sound & effects"; `tests/fx.test.js` |
+
+## Event → sound map (js/sfx.js; others' moves at 0.8 volume)
+| Event (log entry) | Sound | Animation |
+|---|---|---|
+| New game / round dealt | shuffle, then 3× cardDeal | hand cards slide in (existing) |
+| Pair / Add to top | place + coins (coin for add) | your cards fly hand → stack; "+$X" float; your total counts up |
+| Pair with discard | cardDeal + place + coins | hand card + discard fly to stack |
+| Discard | cardFlip | your card flies to the discard |
+| Card drawn from deck (any player) | cardDeal per card (max 3) | — |
+| Challenge (incl. draft offer) | stamp | fight panel's set shakes |
+| Answer in a fight | place (pitch 0.9) | new card enters (existing) |
+| Give up | miss | — |
+| Defender keeps it | capture | defender's stack pops, "Kept $X" |
+| Set stolen | whoosh, coins | set flies fight panel → thief's stack; "+$X"; if yours: your stack shakes + red flash, total counts down |
+| Swap / Move | whoosh / slide | stacks pop |
+| Draft | cardDeal + coins | "+$X" |
+| Swap/Move card flips up | cardFlip (+ whoosh / shuffle) | — |
+| Round over | coins | Total column counts up |
+| Becomes YOUR turn | turn (alerts) | "Your turn" pulses |
+| Illegal tap (not your turn, cards that don't pair, wrong target) | error (alerts) | tapped thing shakes |
+| Hand card tapped | tap (ui) | — |
+| Steal or defend a set ≥ $100K (you) | celebrate big | sparkles at your stack |
+| Game over | celebrate win (you/your team, or any person on this phone) / lose | confetti in money colours |
 
 ## Standing instructions (Tim's words)
 - "build regular play online with a computer or other online players for all the games and their common varients that match exactly the play of the in-person game."
 - "Make sure to get everything right like rules and artwork and specific numbers of cards, routes, details, etc."
 - "Really work on the webdesign of the games, aswell as art, fitting it with an iphone and computer"
+- (2026-10-20) "add opptional sounds you can add to the games that reflect what's happening in the game accurately as well as win celebrations, and other fun annimations to go along with everything. Just make sure everything is customizable in the settings so the user can play as preffered."
 
 ## Traps
 - Headless WebKit on Windows is slow (~85 ms per render). Use `speed: "test"` in `cya.settings` for full-game screenshots.
@@ -32,6 +57,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 - Local test servers: other builders use common ports (8731 served Ticket to Ride on 10-20). Check the page title before trusting screenshots.
 - Design-pass screenshot fixtures (mid-game, battle, round end) came from a seeded AI run; script was in the 10-20 scratchpad, not the repo.
 - `privateView` must stay sorted and small (quota). Public view = `E.view(state, -1)`.
+- Effects are driven by diffing the view in `render()` (`fxPrev`); a new host (new game, reload, room) resets it so nothing replays. Headless WebKit has no Web Audio and renders few confetti frames: check confetti with `--engine chrome`.
 
 ## Decisions
 - Two decks: Classic (2011-2018) default, New (2021+) with Speed Boat and advanced cards. Newest-printing names not modelled.
@@ -44,6 +70,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 - 2021 deck card names/values per tier: single source (King Panda Games).
 - Real iPhone (only Safari's engine headless at 393 px).
 - Online with 3+ real people and host takeover (shared layer has its own emulator tests).
+- Sounds never heard (no audio headless); real iPhone sound + feel unchecked. Online effects only reasoned (same view diff), not run in two browsers.
 - Design pass: online lobby, offer/pick overlays and draft piles not re-screenshotted (CSS shared with checked screens).
 
 ## Rejected / parked

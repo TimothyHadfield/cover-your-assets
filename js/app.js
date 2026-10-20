@@ -9,6 +9,10 @@
     del: function (k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
   };
   O.enableMemo();
+  // sounds, celebrations and small animations (js/fx.js + js/sfx.js); all optional in Settings
+  var FX = window.FX || null, SF = window.CYASfx;
+  if (FX) FX.init({ game: 'cover-your-assets', accent: '#6ea8fe' });
+  function fxPlay(n, o) { if (FX) FX.play(n, o); }
   var NAMES = ['You', 'Ann', 'Ben', 'Cat', 'Dan', 'Eve'];
 
   // ---------- settings ----------
@@ -57,6 +61,7 @@
     var cfg = { players: S.players, edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format };
     var st = E.newGame(cfg);
     startHost(st);
+    fxPlay('shuffle'); [450, 560, 670].forEach(function (ms) { setTimeout(function () { fxPlay('cardDeal'); }, ms); });
     coach = { lost: 0, moves: 0 }; LS.set('cya.coach', coach);
     sel = []; mode = null; hint = null; lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 };
     me = humans()[0] != null ? humans()[0] : 0;
@@ -211,9 +216,9 @@
       var r = host.submit(me, a);
       if (r && r.then) { // online: one move in flight at a time
         var h = host; h.busy = true; sel = []; render();
-        r.then(function (x) { if (x && !x.ok) { h.busy = false; if (x.message) toast(x.message); render(); } });
+        r.then(function (x) { if (x && !x.ok) { h.busy = false; fxPlay('error'); if (x.message) toast(x.message); render(); } });
       }
-    } catch (e) { toast('Not allowed: ' + e.message); }
+    } catch (e) { fxPlay('error'); toast('Not allowed: ' + e.message); }
   }
 
   function sig(st, a) {
@@ -240,9 +245,33 @@
   function render() {
     if (!host) return;
     var v = V();
-    if (!v) return renderLobby();
+    if (!v) { fxPrev = null; return renderLobby(); }
+    var cues = fxCues(v);
+    if (FX) SF.perform(cues, FX, fxUI, 'pre'); // cards fly from where they were, before the redraw
     renderStatus(v); renderOpps(v); renderPiles(v); renderStack(v); renderHand(v); renderBar(v); renderMsg(v); renderSide(v); renderOverlay(v);
+    if (FX) SF.perform(cues, FX, fxUI, 'post');
   }
+
+  // ---------- effects: compare what you saw last with what you see now ----------
+  var fxPrev = null, fxHost = null;
+  function fxCues(v) {
+    if (host !== fxHost) { fxHost = host; fxPrev = null; } // new game, reload or room: no replay
+    var mine = online() ? function (s) { return s === me; } : function (s) { return !!host.seats[s] && host.seats[s].kind === 'human'; };
+    var cues = FX && SF ? SF.cues(fxPrev, v, me, { mine: mine, money: money, human: host.seats[me] && host.seats[me].kind === 'human' }) : [];
+    fxPrev = v;
+    return cues;
+  }
+  var fxUI = {
+    money: money,
+    el: function (k, a) {
+      var q = { stack: a === me ? '#mystack .pilebox' : '.opp[data-seat="' + a + '"]', stackValue: a === me ? '#mystack .info .big' : '',
+        handCard: '#hand .card[data-id="' + a + '"]', discard: '.pile[data-pile="discard"] .slot', fightSet: '#overlay .fight .side-r', turnMsg: '#msg > span' }[k];
+      var e = q ? document.querySelector(q) : null;
+      return e && e.getClientRects().length ? e : null; // hidden tab: no ghost flying from the corner
+    },
+    all: function (k) { return k === 'roundTotals' ? Array.prototype.slice.call(document.querySelectorAll('#overlay .scores td b')) : []; }
+  };
+  function fxNo(el) { fxPlay('error'); if (FX && el) FX.shake(el); }
 
   // online room before the deal: who is in, the code to share, Start for the host
   function renderLobby() {
@@ -527,17 +556,20 @@
   }
 
   // ---------- input ----------
-  function onHandTap(id) {
-    var v = V(); if (!myTurn(v)) return;
+  function onHandTap(id, el) {
+    var v = V();
+    if (!myTurn(v)) { if (v.phase === 'turn' && host.seats[me].kind === 'human') fxNo(el); return; }
     hint = null; mode = null;
     var i = sel.indexOf(id);
     if (i >= 0) sel.splice(i, 1); else { if (sel.length >= 2) sel = []; sel.push(id); }
+    fxPlay('tap');
     render();
+    if (sel.length === 2 && !candidates(V()).length) fxNo($('hand'));
   }
   document.addEventListener('click', function (ev) {
     var t = ev.target.closest('[data-q]'); if (t) { showTip(t); ev.stopPropagation(); return; }
     hideTip();
-    var c = ev.target.closest('#hand .card'); if (c) { onHandTap(+c.dataset.id); return; }
+    var c = ev.target.closest('#hand .card'); if (c) { onHandTap(+c.dataset.id, c); return; }
     var b = ev.target.closest('[data-do]');
     if (b) { var cands = $('bar')._cands || []; var a = cands[+b.dataset.do]; if (a) act(a); return; }
     var x = ev.target.closest('[data-act]');
@@ -556,7 +588,7 @@
   function onSeatTap(s) {
     var v = V(), c = candidates(v);
     var forSeat = c.filter(function (a) { return a.target === s && (a.t === 'challenge' || a.t === 'swap' || a.t === 'move'); });
-    if (!forSeat.length) return;
+    if (!forSeat.length) { if (sel.length && myTurn(v)) fxNo(fxUI.el('stack', s)); return; }
     var moves = forSeat.filter(function (a) { return a.t === 'move'; });
     if (forSeat[0].t === 'move' && moves.length > 1) { mode = { t: 'move', opts: moves }; render(); return; }
     var chal = forSeat.filter(function (a) { return a.t === 'challenge'; });
@@ -564,7 +596,7 @@
   }
   function onPileTap(p) {
     var v = V(), c = candidates(v);
-    if (p === 'discard') { var a = c.filter(function (x) { return x.t === 'pairDiscard'; })[0]; if (a) act(a); return; }
+    if (p === 'discard') { var a = c.filter(function (x) { return x.t === 'pairDiscard'; })[0]; if (a) act(a); else if (sel.length && myTurn(v)) fxNo(fxUI.el('discard')); return; }
     var d = c.filter(function (x) { return x.t === 'draft' && x.piles.indexOf(+p) >= 0; });
     if (d.length) act(d[0]);
   }
@@ -644,6 +676,7 @@
     html += row('Game length', '<select data-set="format">' + [['million', 'First to $1M'], ['quick', 'One round'], ['three', 'Three rounds'], ['bestof2', 'First to 2 round wins']].map(function (o) {
       return '<option value="' + o[0] + '"' + (o[0] === S.format ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>');
     html += '<div class="row" style="justify-content:flex-start"><button class="btn" data-set-act="new">Start new game</button></div>';
+    if (FX) html += '<div class="sidehead">Sound &amp; effects</div><div id="fxSet"></div>';
     html += '</div><div class="scol"><div class="sidehead">While playing</div>';
     html += row('Show odds', sw('odds', S.odds));
     html += row('Coach <button class="q" data-q="coach">?</button>', sw('coach', S.coach));
@@ -660,6 +693,7 @@
     html += '<div class="sidehead">How strong are the computers? <button class="q" data-q="strength">?</button></div>';
     html += '<div class="setrow" style="display:block;color:var(--muted);font-size:13px" id="strengthNote"></div>';
     $('settings').innerHTML = '<div class="scols">' + html + '</div></div>';
+    if (FX) FX.renderSettings($('fxSet'));
     var sd = window.CYALabData && window.CYALabData.strength;
     if (sd) $('strengthNote').innerHTML = sd.rows.map(function (r) { return esc(r.label) + ': <b style="color:var(--text)">' + pct(r.winRate) + '</b> (fair share ' + pct(r.fair) + ')'; }).join('<br>') + '<br>' + esc(sd.note);
   }
