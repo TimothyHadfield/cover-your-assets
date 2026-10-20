@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Art Preview</title>
+<style>
+  :root { --bg:#0f1117; --card:#1a1e2b; --line:#2a3042; --text:#e8eaf0; --muted:#969db4; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,sans-serif; }
+  h2 { font-size:15px; color:var(--muted); font-weight:600; margin:18px 0 10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; }
+  .grid svg { width:100%; height:auto; display:block; filter:drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
+  .icons { display:flex; flex-wrap:wrap; gap:10px; }
+  .ic { display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:13px; }
+  .ic svg { width:20px; height:20px; display:block; }
+  .ic.big svg { width:40px; height:40px; }
+</style>
+</head>
+<body>
+<h2>Faces</h2><div class="grid" id="faces"></div>
+<h2>Icons 20px</h2><div class="icons" id="icons"></div>
+<h2>Icons 40px</h2><div class="icons" id="icons40"></div>
+<script src="../js/art.js"></script>
+<script>
+  var cards = [['stamps',5000],['cash',5000],['baseball',5000],['piggy',5000],['coins',5000],
+    ['stocks',10000],['coins',10000],['bank',10000],['cash',10000],
+    ['auto',15000],['jewels',15000],['boat',15000],['home',20000],
+    ['silver',25000],['gold',50000],['penny',1000],['swap',0],['move',0]];
+  var f = document.getElementById('faces');
+  f.innerHTML = cards.map(function (c) { return '<div>' + CYAArt.face(c[0], c[1]) + '</div>'; }).join('') + '<div>' + CYAArt.back() + '</div>';
+  var types = Object.keys(CYAArt.SHORT);
+  document.getElementById('icons').innerHTML = types.map(function (t) { return '<span class="ic">' + CYAArt.icon(t) + CYAArt.SHORT[t] + '</span>'; }).join('');
+  document.getElementById('icons40').innerHTML = types.map(function (t) { return '<span class="ic big">' + CYAArt.icon(t) + '</span>'; }).join('');
+</script>
+</body>
+</html>
