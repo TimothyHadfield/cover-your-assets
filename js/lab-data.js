@@ -196,62 +196,72 @@ window.CYALabData = {
   {
    "type": "auto",
    "made": 1875,
-   "stolen": 2118,
-   "rate": 1.1296
+   "steals": 2118,
+   "stolen": 1126,
+   "rate": 0.6005333333333334
   },
   {
    "type": "jewels",
    "made": 1877,
-   "stolen": 2097,
-   "rate": 1.1172083111347895
+   "steals": 2097,
+   "stolen": 1091,
+   "rate": 0.5812466702184337
   },
   {
    "type": "home",
    "made": 1564,
-   "stolen": 1688,
-   "rate": 1.0792838874680306
+   "steals": 1688,
+   "stolen": 885,
+   "rate": 0.5658567774936062
   },
   {
    "type": "stocks",
    "made": 2117,
-   "stolen": 1986,
-   "rate": 0.9381199811053378
-  },
-  {
-   "type": "bank",
-   "made": 2156,
-   "stolen": 1932,
-   "rate": 0.8961038961038961
+   "steals": 1986,
+   "stolen": 1125,
+   "rate": 0.5314123760037789
   },
   {
    "type": "coins",
    "made": 2125,
-   "stolen": 1897,
-   "rate": 0.8927058823529411
+   "steals": 1897,
+   "stolen": 1086,
+   "rate": 0.5110588235294118
   },
   {
-   "type": "baseball",
-   "made": 2480,
-   "stolen": 1609,
-   "rate": 0.6487903225806452
-  },
-  {
-   "type": "cash",
-   "made": 2525,
-   "stolen": 1604,
-   "rate": 0.6352475247524753
+   "type": "bank",
+   "made": 2156,
+   "steals": 1932,
+   "stolen": 1099,
+   "rate": 0.5097402597402597
   },
   {
    "type": "piggy",
    "made": 2497,
-   "stolen": 1580,
-   "rate": 0.6327593111734081
+   "steals": 1580,
+   "stolen": 1031,
+   "rate": 0.4128954745694834
+  },
+  {
+   "type": "baseball",
+   "made": 2480,
+   "steals": 1609,
+   "stolen": 1007,
+   "rate": 0.4060483870967742
+  },
+  {
+   "type": "cash",
+   "made": 2525,
+   "steals": 1604,
+   "stolen": 1008,
+   "rate": 0.39920792079207923
   },
   {
    "type": "stamps",
    "made": 2507,
-   "stolen": 1543,
-   "rate": 0.6154766653370563
+   "steals": 1543,
+   "stolen": 995,
+   "rate": 0.396888711607499
   }
  ],
  "avgStolen": 61026.365348399246,
@@ -262,5 +272,5 @@ window.CYALabData = {
   "fair": 0.25,
   "note": "One hard bot always makes its first set (the safe nest egg) as valuable as possible, wilds included; the other three play normally."
  },
- "seconds": 383
+ "seconds": 66
 };
