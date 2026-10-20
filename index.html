@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cover Your Assets</title>
+<meta name="description" content="Play Cover Your Assets against computers or friends, with live steal odds, hints and a real-table score tracker.">
+<meta name="theme-color" content="#0f1117">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <a class="home" href="../" aria-label="All games">&#8249;</a>
+    <h1>Cover Your Assets</h1>
+    <div class="status" id="status"></div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="table">Table</button>
+    <button data-tab="lab">Lab</button>
+    <button data-tab="play" class="hubtab">Play</button>
+    <button data-tab="rules">Rules</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+
+  <main>
+    <!-- PLAY -->
+    <section id="tab-play" class="tab">
+      <div class="board">
+        <div class="opps" id="opps"></div>
+        <div class="center">
+          <div class="piles" id="piles"></div>
+          <div class="msg" id="msg"></div>
+        </div>
+        <div class="me">
+          <div class="mystack" id="mystack"></div>
+          <div class="hand" id="hand"></div>
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+      <aside class="side" id="side">
+        <div class="sidehead">Odds <button class="q" data-q="odds">?</button></div>
+        <div id="oddsPanel" class="oddsPanel"></div>
+        <div class="sidehead">Log</div>
+        <ol id="log" class="log"></ol>
+      </aside>
+      <div class="overlay" id="overlay" hidden></div>
+    </section>
+
+    <!-- TABLE (real-table tracker) -->
+    <section id="tab-table" class="tab" hidden>
+      <div class="tt-head">
+        <div class="tt-title">At the table <button class="q" data-q="table">?</button></div>
+        <div class="tt-actions">
+          <button id="ttEnd" class="btn">End round</button>
+          <button id="ttUndo" class="btn ghost">Undo</button>
+        </div>
+      </div>
+      <div class="tt-grid">
+        <div class="tt-players" id="ttPlayers"></div>
+        <div class="tt-side">
+          <div class="sidehead">Still hidden <button class="q" data-q="unseen">?</button></div>
+          <div id="ttUnseen" class="unseen"></div>
+          <div class="sidehead">Rounds</div>
+          <div id="ttHistory" class="history"></div>
+        </div>
+      </div>
+      <div class="sheet" id="ttSheet" hidden></div>
+    </section>
+
+    <!-- LAB -->
+    <section id="tab-lab" class="tab" hidden>
+      <div class="lab" id="lab"></div>
+    </section>
+
+    <!-- RULES -->
+    <section id="tab-rules" class="tab" hidden>
+      <div class="rules" id="rules"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" class="tab" hidden>
+      <div class="settings" id="settings"></div>
+    </section>
+  </main>
+  <div class="tip" id="tip" hidden></div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+<script src="js/rules.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/odds.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/art.js"></script>
+<script src="js/lab-data.js"></script>
+<script src="js/transport.js"></script>
+<script src="js/app.js"></script>
+<script src="js/tracker.js"></script>
+<script src="js/lab.js"></script>
+</body>
+</html>

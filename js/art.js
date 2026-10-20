@@ -253,7 +253,19 @@
       '</svg>';
   }
 
-  var api = { face: face, icon: icon, back: back, SHORT: SHORT };
+  // Speed: build each drawing once, then hand out copies with a fresh id suffix.
+  var cache = {};
+  function cached(key, make) {
+    var c = cache[key];
+    if (!c) { var before = n; var s = make(); c = cache[key] = { s: s, id: 'cya' + (before + 1) }; return s; }
+    return c.s.split(c.id).join(uid());
+  }
+  var api = {
+    face: function (type, value) { return cached('f' + type + value, function () { return face(type, value); }); },
+    icon: function (type) { return cached('i' + type, function () { return icon(type); }); },
+    back: function () { return cached('b', back); },
+    SHORT: SHORT
+  };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CYAArt = api;
 })(this);
