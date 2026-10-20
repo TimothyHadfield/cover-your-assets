@@ -81,6 +81,7 @@
     host = h; me = Math.max(0, h.snap.mySeat); lastSeq = null; passCover = false;
     h.onChange(function () { if (host === h) onChange({}); });
     sel = []; mode = null; hint = null; lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 };
+    if ($('netNote')) $('netNote').textContent = '';
     showTab('play');
   }
   function endOnline(msg) {
@@ -275,7 +276,7 @@
   function myName() { var n = ($('netName') && $('netName').value.trim()) || S.netName || 'Player'; S.netName = n.slice(0, 16); saveSettings(); return S.netName; }
   function netBusy(on) { document.querySelectorAll('[data-net="create"],[data-net="join"]').forEach(function (b) { b.disabled = on; }); }
   function netCreate() {
-    var seats = S.seats.slice(0, S.players).map(function (s, i) { return i === 0 ? 'human' : s.kind === 'human' ? 'empty' : 'computer'; });
+    var seats = S.seats.slice(0, S.players).map(function (s, i) { return i === 0 ? 'human' : s.kind === 'human' ? 'empty' : { kind: 'computer', name: s.name || NAMES[i] }; });
     var options = { edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format,
       levels: S.seats.slice(0, S.players).map(function (s) { return s.level || S.level; }) };
     netBusy(true); $('netNote').textContent = 'Opening a room…';
@@ -364,7 +365,7 @@
     });
     lastSeen.hand = h.slice();
     // cards as big as the row allows (phone), fixed size on laptop
-    var W = $('hand').clientWidth || window.innerWidth, n = Math.max(4, h.length);
+    var W = Math.min($('hand').clientWidth || 9999, document.documentElement.clientWidth - 20), n = Math.max(4, h.length);
     var cw = window.innerWidth >= 900 ? 110 : Math.min(80, Math.floor((W - 4 * (n - 1)) / n));
     $('hand').style.setProperty('--cw', cw + 'px');
     $('hand').innerHTML = html;
@@ -384,6 +385,8 @@
         var tops = a.piles.map(function (p) { return v.piles[p].top; });
         html += '<button class="btn" data-do="' + idx(c, a) + '">Draft ' + money(sum(v, [a.card].concat(tops))) + '</button>';
       });
+      var pd = c.filter(function (a) { return a.t === 'pairDiscard'; })[0];
+      if (pd) html += '<button class="btn" data-do="' + idx(c, pd) + '">Pair discard ' + money(sum(v, [pd.card, v.discard[v.discard.length - 1]])) + '</button>';
       var dis = c.filter(function (a) { return a.t === 'discard'; })[0];
       if (dis) html += '<button class="btn ghost" data-do="' + idx(c, dis) + '">Discard</button>';
       if (!sel.length) html += '<span class="msg" style="min-height:0;color:var(--muted);font-size:13px">Tap cards</span>';
