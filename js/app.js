@@ -139,7 +139,7 @@
       case 'pair': return n(e.s) + ' paired ' + cs(e.cards);
       case 'pairDiscard': return n(e.s) + ' took ' + cardName(st, e.cards[1]) + ' from the discard';
       case 'discard': return n(e.s) + ' discarded ' + cs(e.cards);
-      case 'challenge': return n(e.s) + ' challenged ' + n(e.target) + "'s " + tname(e.type) + ' with ' + cs(e.cards);
+      case 'challenge': return n(e.s) + ' challenged ' + (e.target === me && seatName(me) === 'You' ? 'your' : n(e.target) + "'s") + ' ' + tname(e.type) + ' with ' + cs(e.cards);
       case 'answer': return n(e.s) + ' answered with ' + cs(e.cards);
       case 'fold': return n(e.s) + ' gave up';
       case 'held': return n(e.s) + ' kept the ' + tname(e.type) + ' set (' + money(e.value) + ')';
@@ -299,7 +299,7 @@
 
   function renderOpps(v) {
     var cands = candidates(v), html = '';
-    var w = window.innerWidth >= 900 ? 36 : 22;
+    var w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 40 : 50) : 28;
     oppOrder(v).forEach(function (s) {
       var tgt = cands.filter(function (a) { return (a.t === 'challenge' || a.t === 'swap' || a.t === 'move') && a.target === s; });
       var isTurn = E.toAct(v) === s && v.phase !== 'roundEnd' && v.phase !== 'gameOver';
@@ -340,7 +340,7 @@
   }
 
   function renderStack(v) {
-    var k = v.stacks[me], w = window.innerWidth >= 900 ? 46 : 34;
+    var k = v.stacks[me], w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 46 : 60) : 38;
     var fresh = (lastSeen.sets[me] || 0) < k.length; lastSeen.sets = v.stacks.map(function (x) { return x.length; });
     var info = '<div class="big">' + money(E.stackValue(v, me)) + '</div><div>' + k.length + ' set' + (k.length === 1 ? '' : 's') + ' this round</div>';
     if (S.odds && k.length) {
@@ -366,7 +366,7 @@
     lastSeen.hand = h.slice();
     // cards as big as the row allows (phone), fixed size on laptop
     var W = Math.min($('hand').clientWidth || 9999, document.documentElement.clientWidth - 20), n = Math.max(4, h.length);
-    var cw = window.innerWidth >= 900 ? 110 : Math.min(80, Math.floor((W - 4 * (n - 1)) / n));
+    var cw = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 96 : 124) : Math.min(80, Math.floor((W - 4 * (n - 1)) / n));
     $('hand').style.setProperty('--cw', cw + 'px');
     $('hand').innerHTML = html;
   }
@@ -418,6 +418,8 @@
       m = last ? logText(v, last) : '';
     }
     $('msg').innerHTML = m.indexOf('<span') === 0 ? m : '<span>' + m + '</span>';
+    $('msg').classList.toggle('mine', !hint && v.phase === 'turn' && t === me && host.seats[me].kind === 'human');
+    $('mystack').classList.toggle('turn', v.phase === 'turn' && t === me);
   }
 
   function renderSide(v) {
@@ -469,7 +471,8 @@
       html = '<div class="panel"><h2>' + esc(seatName(b.attacker)) + ' challenges ' + esc(b.defender === me ? 'you' : seatName(b.defender)) + '</h2>' +
         '<div class="sub">For the ' + tname(set.type) + ' set (' + money(E.setValue(v, set)) + '). Last card played wins it all.</div>' +
         '<div class="fight"><div class="side-r">' + setCards + '</div></div>' +
-        '<div class="fight"><div class="side-l">' + att + '</div><span class="vs">' + esc(seatName(b.attacker)) + ' · ' + esc(seatName(b.defender)) + '</span><div class="side-r">' + def + '</div></div>';
+        '<div class="fight duel"><div class="lane"><div class="side-l">' + (att || '<i class="slot0"></i>') + '</div><div class="who">' + esc(seatName(b.attacker)) + '</div></div><span class="vs">vs</span>' +
+        '<div class="lane"><div class="side-r">' + (def || '<i class="slot0"></i>') + '</div><div class="who">' + esc(b.defender === me ? 'You' : seatName(b.defender)) + '</div></div></div>';
       if (mine) {
         var my = O.myFighters(v, me, set.type).length, opp = b.toAct === b.attacker ? b.defender : b.attacker;
         var un = O.unseen(v, me), m = O.fighters(v, un, set.type);
@@ -625,7 +628,7 @@
   function sw(key, on, dis) { return '<button class="switch' + (on ? ' on' : '') + (dis ? ' off-dis' : '') + '" data-sw="' + key + '" aria-label="' + key + '"></button>'; }
   function renderSettings() {
     var e21 = S.edition === 'e2021';
-    var html = '<div class="sidehead">New game</div>';
+    var html = '<div class="scol"><div class="sidehead">New game</div>';
     html += row('Players', '<select data-set="players">' + [2, 3, 4, 5, 6].map(function (n) { return '<option' + (n === S.players ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>');
     html += '<div class="seats">' + S.seats.slice(0, S.players).map(function (s, i) {
       return '<div class="seat"><input type="text" data-name="' + i + '" value="' + esc(s.name) + '" maxlength="10"><select data-seat="' + i + '">' +
@@ -641,7 +644,7 @@
     html += row('Game length', '<select data-set="format">' + [['million', 'First to $1M'], ['quick', 'One round'], ['three', 'Three rounds'], ['bestof2', 'First to 2 round wins']].map(function (o) {
       return '<option value="' + o[0] + '"' + (o[0] === S.format ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>');
     html += '<div class="row" style="justify-content:flex-start"><button class="btn" data-set-act="new">Start new game</button></div>';
-    html += '<div class="sidehead">While playing</div>';
+    html += '</div><div class="scol"><div class="sidehead">While playing</div>';
     html += row('Show odds', sw('odds', S.odds));
     html += row('Coach <button class="q" data-q="coach">?</button>', sw('coach', S.coach));
     html += row('Computer speed', '<select data-set="speed">' + ['slow', 'normal', 'fast'].map(function (o) { return '<option' + (o === S.speed ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>');
@@ -656,7 +659,7 @@
     html += '<div class="setrow"><span class="lab2" id="netNote" style="color:var(--muted);font-size:13px"></span></div>';
     html += '<div class="sidehead">How strong are the computers? <button class="q" data-q="strength">?</button></div>';
     html += '<div class="setrow" style="display:block;color:var(--muted);font-size:13px" id="strengthNote"></div>';
-    $('settings').innerHTML = html;
+    $('settings').innerHTML = '<div class="scols">' + html + '</div></div>';
     var sd = window.CYALabData && window.CYALabData.strength;
     if (sd) $('strengthNote').innerHTML = sd.rows.map(function (r) { return esc(r.label) + ': <b style="color:var(--text)">' + pct(r.winRate) + '</b> (fair share ' + pct(r.fair) + ')'; }).join('<br>') + '<br>' + esc(sd.note);
   }
