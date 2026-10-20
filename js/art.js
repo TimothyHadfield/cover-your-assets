@@ -28,6 +28,13 @@
     home: 'Home', silver: 'Silver', gold: 'Gold', penny: 'Penny Jar', swap: 'Swap', move: 'Move'
   };
 
+  // Outer border colour per asset type (each kind has its own, like the printed deck)
+  var FRAME = {
+    stamps: '#2a8c8c', cash: '#3f8f4a', baseball: '#b8443a', piggy: '#d06a92', stocks: '#2b4f8f',
+    coins: '#b8860b', bank: '#4a6fb5', auto: '#a3283a', jewels: '#7a4bb0', boat: '#1f86a8',
+    home: '#8a5a33', silver: '#8a93a3', gold: '#c8930f', penny: '#a4552a', swap: '#5b3aa0', move: '#5b3aa0'
+  };
+
   // Metallic gradients (vertical), used by wild cards and the silver/gold bar drawings.
   var METAL = {
     silver: ['#ffffff', '#c9cfd9', '#9aa3b3', '#e4e8ef'],
@@ -209,9 +216,15 @@
     if (T.metal) { defs += grad('b' + u, METAL[T.metal], true); band = 'url(#b' + u + ')'; }
     var edge = T.metal ? T.d : T.c;
     var label = (name + ' ' + money(value)).trim();
+    // engraved certificate-style border, its colour per asset type (like the printed cards)
+    var fr = FRAME[type] || edge, eng = '';
+    for (var i = 0; i < 26; i++) eng += 'M' + (2.5 + i * 3.7) + ',2.5 l1.8,2.2 M' + (2.5 + i * 3.7) + ',137.5 l1.8,-2.2 ';
+    for (var j = 0; j < 36; j++) eng += 'M2.5,' + (4 + j * 3.7) + ' l2.2,1.8 M97.5,' + (4 + j * 3.7) + ' l-2.2,1.8 ';
     return SVG + 'viewBox="0 0 100 140" role="img" aria-label="' + label + '">' +
       (defs ? '<defs>' + defs + '</defs>' : '') +
       '<rect x="1" y="1" width="98" height="138" rx="8" fill="#fbf7ee" stroke="#d6ccb4" stroke-width="1"/>' +
+      '<rect x="1.8" y="1.8" width="96.4" height="136.4" rx="7" fill="none" stroke="' + fr + '" stroke-width="3.4" opacity=".9"/>' +
+      '<path d="' + eng + '" stroke="#fff" stroke-width=".55" opacity=".55"/>' +
       '<rect x="5" y="5" width="90" height="130" rx="5" fill="none" stroke="' + edge + '" stroke-width="1.6"/>' +
       '<path d="M5,10 a5,5 0 0 1 5,-5 h80 a5,5 0 0 1 5,5 v17 h-90 Z" fill="' + band + '"/>' +
       (value ? '<text x="10" y="22" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="16" font-weight="900" fill="' + T.k + '">' + money(value) + '</text>' : '') +

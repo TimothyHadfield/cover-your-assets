@@ -358,3 +358,138 @@ select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg x
 .fx-set .switch span { display: none; }
 .fx-set .seg button[aria-pressed="true"] { background: var(--accent); color: #0f1117; font-weight: 700; }
 .fx-set .fx-why { padding: 6px 0; border-bottom: 1px solid var(--line); }
+
+/* ---------- real table look (2026-10-20): wood kitchen table, poker-size cards, criss-cross stacks ---------- */
+/* the kit (css/table.css, js/table.js) is a byte copy of Board and Card Games/_table: never edit it here */
+.board.tbl-surface {
+  --muted: rgba(246, 236, 214, .74); --text: #f7f0e1;
+  background-color: var(--tbl-base);
+  background-image: radial-gradient(ellipse 120% 95% at 50% 42%, transparent 52%, var(--tbl-vig) 100%), radial-gradient(ellipse 70% 55% at 50% 38%, var(--tbl-light), transparent 75%), var(--tbl-tex);
+  background-size: 100% 100%, 100% 100%, var(--tbl-tex-size);
+}
+.card.tbl-card { aspect-ratio: 63 / 88; border: 0; background: #fbf7ee; border-radius: calc(var(--card-w, 60px) * .075); overflow: hidden;
+  box-shadow: 0 1px 1px rgba(0,0,0,.35), 0 3px 7px rgba(0,0,0,.3); }
+.card.tbl-card svg { height: 100%; }
+.set .card.tbl-card { border-radius: calc(var(--card-w, 30px) * .075); box-shadow: 0 1px 1px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.35); }
+.set .cnt { background: #1b1b1f; color: #fff; border: 0; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.empty-stack.tbl-spot { position: absolute; left: 50%; top: 50%; inset: auto; transform: translate(-50%, -50%); aspect-ratio: 63 / 88; height: auto; margin: 0; }
+
+/* opponents: seats round the far edge, each with a name plate, their fanned backs and their stack */
+.opps { gap: 4px; align-items: start; }
+.opp { background: none; border: 0; border-radius: 14px; padding: 2px 2px 3px; height: 116px; align-items: center; justify-content: flex-start; gap: 1px; }
+.opp.turn { border: 0; box-shadow: none; background: radial-gradient(closest-side, rgba(255, 214, 140, .2), transparent); }
+.opp.turn .tbl-plate { border-color: #f0c35a; color: #ffd98a; box-shadow: 0 0 0 2px rgba(240,195,90,.45), 0 2px 4px rgba(0,0,0,.4); }
+.opp.target { border: 0; box-shadow: 0 0 0 2px var(--accent); background: rgba(110, 168, 254, .12); }
+.opp.mate .tbl-plate { border-style: dashed; }
+.opp .ohand { flex: 0 0 auto; display: flex; justify-content: center; min-height: 22px; }
+.ofan { position: relative; }
+.ofan > .card { position: absolute; left: 0; bottom: 0; transform-origin: 50% 100%; box-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.opp .stk { flex: 1 1 auto; width: 100%; }
+.opp .nm { flex: 0 0 auto; max-width: 100%; justify-content: center; gap: 5px; font-size: 11px; }
+.opp .nm .tbl-plate { flex: 0 1 auto; min-width: 0; font-size: 11px; line-height: 16px; padding: 1px 6px; }
+.opp .nm .tv { font-size: 12px; font-weight: 800; color: #f7e7c0; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.opp .otop { display: none; }
+.opp .chip { bottom: 22px; left: 50%; right: auto; transform: translateX(-50%); padding: 1px 8px; white-space: nowrap; z-index: 9; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+
+/* middle of the table: the draw pile as a real stack, the discard as a messy face-up pile */
+.piles { gap: 22px; align-items: center; }
+.pile .slot { border: 0; height: auto; aspect-ratio: 63 / 88; --card-w: 64px; border-radius: calc(var(--card-w) * .075); }
+.pile .slot.tbl-spot { border: 2px dashed rgba(255, 255, 255, .3); background: rgba(0, 0, 0, .1); }
+.pile .slot > .card { height: auto; }
+.pile .tbl-deck > .tbl-back { position: absolute; inset: 0; transform: translateY(var(--tbl-rise, 0)); background: #1b2a4e; }
+.pile .tbl-pile > .card { transform: translate(var(--x, 0), var(--y, 0)) rotate(var(--r, 0deg)); }
+.pile .tbl-badge { z-index: 6; }
+.pile .lbl { color: var(--muted); }
+.pile.can .slot { box-shadow: 0 0 0 3px var(--accent); }
+
+/* your own place: the stack in front of you, no box round it */
+.mystack, .mystack.turn { box-shadow: none; }
+.mystack { background: none; }
+.mystack.turn { background: radial-gradient(closest-side at 50% 50%, rgba(255, 210, 130, .2), transparent 72%); }
+.mystack .info .big { text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+
+/* your hand: held as a fan along the bottom edge */
+.hand { position: relative; display: block; height: 140px; padding: 0; gap: 0; }
+.hand .card { position: absolute; left: 0; bottom: 2px; width: var(--cw); transform-origin: 50% 100%;
+  transform: translate(var(--x, 0), calc(var(--y, 0px) - var(--up, 0px))) rotate(var(--r, 0deg));
+  box-shadow: -2px 2px 6px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.3); }
+.hand .card.sel { --up: 16px; transform: translate(var(--x, 0), calc(var(--y, 0px) - var(--up, 0px))) rotate(var(--r, 0deg)); box-shadow: 0 0 0 2.5px var(--accent), 0 12px 22px rgba(0,0,0,.45); }
+.hand .card.hint { box-shadow: 0 0 0 2.5px var(--warm), 0 8px 18px rgba(0,0,0,.45); }
+.hand .card.enter { animation: handIn .35s ease-out both; }
+@keyframes handIn { from { translate: 0 -40px; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+/* turning a card face up: a 3-D turn on its own axis (keeps its place in the fan or pile) */
+.hand .card.flip, .pile .tbl-pile > .card.flip { animation: turnUp .34s ease-out both; }
+@keyframes turnUp { from { rotate: y 90deg; } to { rotate: y 0deg; } }
+
+/* challenges are fought on the table; the round totals go on a paper score pad */
+.overlay[data-kind="battle"], .overlay[data-kind="offer"] { background: rgba(12, 7, 2, .38); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.panel.mat { --muted: rgba(246, 236, 214, .78); background-color: var(--tbl-base); color: #f7f0e1; border: 1px solid rgba(0,0,0,.45);
+  background-image: radial-gradient(ellipse 120% 95% at 50% 42%, transparent 52%, var(--tbl-vig) 100%), radial-gradient(ellipse 70% 55% at 50% 38%, var(--tbl-light), transparent 75%), var(--tbl-tex);
+  background-size: 100% 100%, 100% 100%, var(--tbl-tex-size); box-shadow: 0 14px 40px rgba(0,0,0,.6); }
+.panel.mat .fight .card { --card-w: 48px; }
+.panel.mat .fight .slot0 { aspect-ratio: 63 / 88; border-color: rgba(255,255,255,.35); }
+.panel.mat .fight .side-r .card:nth-child(2n) { transform: rotate(4deg); }
+.panel.mat .fight .side-l .card:nth-child(2n) { transform: rotate(-4deg); }
+.panel.mat .fight .lane .who, .panel.mat .sub { color: var(--muted); }
+.panel.mat .btn.ghost { background: rgba(20, 12, 4, .55); border-color: rgba(255,255,255,.18); color: #f7f0e1; }
+.panel.scorepad { color: #2a2418; border: 0; border-top: 12px solid #b83a33; border-radius: 4px 4px 6px 6px; max-width: 420px;
+  background: #fbf6e4;
+  box-shadow: 0 1px 1px rgba(0,0,0,.2), 0 16px 40px rgba(0,0,0,.55); }
+.panel.scorepad h2 { font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive; font-size: 22px; color: #1f2c55; }
+.panel.scorepad .sub, .panel.scorepad .scores th { color: #6d6250; }
+.panel.scorepad .scores td, .panel.scorepad .scores th { border-bottom-color: rgba(70, 110, 170, .32); }
+.panel.scorepad .scores td b { color: #1f2c55; font-family: "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive; }
+.panel.scorepad .meter { background: rgba(0, 0, 0, .08); }
+.panel.scorepad .btn.ghost { background: #efe7d0; color: #2a2418; border-color: #d6ccb4; }
+
+@media (max-height: 640px) and (max-width: 899px) { .opp { height: 104px; } .pile .slot { --card-w: 58px; } .hand { height: 128px; } }
+/* small phones (iPhone SE size) */
+@media (max-height: 600px) and (max-width: 899px) and (orientation: portrait) {
+  .board { gap: 4px; padding-top: 4px; }
+  .opp { height: 92px; }
+  .pile .slot { --card-w: 50px; }
+  .pile, .pile .slot { width: 50px; }
+  .msg { min-height: 22px; font-size: 13px; }
+  .msg.mine { font-size: 15px; }
+  .mystack { height: 62px; }
+  .mystack .pilebox { height: 60px; }
+  .hand { height: 116px; }
+  .bar { height: 40px; }
+}
+/* phone turned sideways: your stack beside the piles, hand and buttons below */
+@media (max-height: 460px) and (max-width: 899px) and (orientation: landscape) {
+  .board { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-areas: "opps opps" "stack center" "hand hand" "bar bar"; gap: 3px 8px; padding: 4px 10px 2px; }
+  .me { display: contents; }
+  .opps { grid-area: opps; }
+  .opp { height: 74px; }
+  .opp .ohand { min-height: 16px; }
+  .center { grid-area: center; flex-direction: row; gap: 8px; justify-content: flex-start; }
+  .piles { gap: 14px; }
+  .pile .slot { --card-w: 40px; }
+  .pile, .pile .slot { width: 40px; }
+  .msg { min-height: 0; font-size: 13px; }
+  .msg.mine { font-size: 15px; }
+  .mystack { grid-area: stack; height: 60px; justify-content: flex-end; }
+  .mystack .pilebox { height: 58px; }
+  .hand { grid-area: hand; height: 92px; }
+  .bar { grid-area: bar; height: 40px; }
+}
+@media (min-width: 900px) {
+  .opps { padding: 0 10px; gap: 14px; }
+  .opp { height: 178px; transform: translateY(var(--oy, 0)) rotate(var(--or, 0deg)); }
+  .opp .ohand { min-height: 40px; }
+  .opp .nm, .opp .nm .tbl-plate { font-size: 13px; }
+  .opp .nm .tv { font-size: 15px; }
+  .opp .otop { display: inline; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .opp .chip { bottom: 30px; font-size: 12px; }
+  .pile .slot { --card-w: 116px; }
+  .piles { gap: 40px; }
+  .hand { height: 196px; }
+  .panel.mat .fight .card { --card-w: 84px; }
+}
+@media (min-width: 900px) and (max-height: 819px) {
+  .opp { height: 132px; }
+  .opp .ohand { min-height: 30px; }
+  .pile .slot { --card-w: 80px; }
+  .hand { height: 156px; }
+}

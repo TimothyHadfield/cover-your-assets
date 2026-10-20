@@ -165,29 +165,45 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   // ---------- card html ----------
+  // every card on the play table is a real-proportion card (poker size, js/table.js + css/table.css)
+  var T = window.TABLE || null;
   function cardHTML(st, id, cls, extra) {
     var c = st.cards[id];
-    return '<div class="card ' + (cls || '') + '" data-id="' + id + '"' + (extra || '') + '>' + A.face(c.type, c.value) + '</div>';
+    return '<div class="card tbl-card ' + (cls || '') + '" data-id="' + id + '"' + (extra || '') + '>' + A.face(c.type, c.value) + '</div>';
   }
-  function backHTML(cls) { return '<div class="card ' + (cls || '') + '">' + A.back() + '</div>'; }
+  function backHTML(cls, extra) { return '<div class="card tbl-card ' + (cls || '') + '"' + (extra || '') + '>' + A.back() + '</div>'; }
+  function jit(seed, i, o) { return T ? T.jitter(seed, i, o) : { x: 0, y: 0, r: 0 }; }
 
-  // a stack drawn like the real table: sets crossed at right angles, newest on top
+  // a stack drawn like the real table: each pair laid crosswise on the last one, newest on top,
+  // the tower a little thicker with every set (older sets show only as edges underneath)
   function stackHTML(st, seat, w, freshTop) {
     var k = st.stacks[seat];
-    if (!k.length) return '<div class="empty-stack" style="width:' + w * 1.5 + 'px;height:' + w * 1.4 + 'px">' + (seat === me ? 'Stack' : '') + '</div>';
-    var h = w * 1.4, html = '', from = Math.max(0, k.length - 3);
+    if (!k.length) return '<div class="empty-stack tbl-spot" style="--card-w:' + w + 'px;width:' + w + 'px"></div>';
+    var h = w * 88 / 63, html = '', from = Math.max(0, k.length - 6), rise = Math.max(1, w / 30);
     for (var i = from; i < k.length; i++) {
-      var set = k[i], rot = i % 2 ? 90 : 0, asset = null, other = null;
+      var set = k[i], j = jit('stk' + seat, i, { rot: 5, off: 1.5 }), rot = (i % 2 ? 90 : 0) + j.r, asset = null, other = null;
       set.cards.forEach(function (id) { if (st.cards[id].kind === 'asset' && asset == null) asset = id; });
       set.cards.forEach(function (id) { if (id !== asset && other == null) other = id; });
-      var top = i === k.length - 1, dx = (i - from) * 3;
-      html += '<div class="set' + (top && freshTop ? ' enter' : '') + '" style="transform:translate(' + (dx - 4) + 'px,' + (-dx) + 'px) rotate(' + rot + 'deg)">';
-      if (other != null) html += '<div class="card" style="left:' + (-w / 2 + w * .28) + 'px;top:' + (-h / 2 - 2) + 'px;width:' + w + 'px">' + A.face(st.cards[other].type, st.cards[other].value) + '</div>';
-      html += '<div class="card" style="left:' + (-w / 2 - w * .12) + 'px;top:' + (-h / 2 + 2) + 'px;width:' + w + 'px">' + A.face(st.cards[asset].type, st.cards[asset].value) + '</div>';
-      if (top && set.cards.length > 2) html += '<span class="cnt" style="transform:rotate(' + (-rot) + 'deg)">×' + set.cards.length + '</span>';
+      var top = i === k.length - 1, up = (i - from) * rise;
+      html += '<div class="set' + (top && freshTop ? ' enter' : '') + '" style="z-index:' + (i - from + 1) + ';transform:translate(' + (j.x - up * .4) + 'px,' + (j.y - up) + 'px) rotate(' + rot.toFixed(1) + 'deg)">';
+      if (other != null) html += '<div class="card tbl-card" style="--card-w:' + w + 'px;left:' + (-w / 2 + w * .26) + 'px;top:' + (-h / 2 - 3) + 'px;width:' + w + 'px;transform:rotate(6deg)">' + A.face(st.cards[other].type, st.cards[other].value) + '</div>';
+      html += '<div class="card tbl-card" style="--card-w:' + w + 'px;left:' + (-w / 2 - w * .12) + 'px;top:' + (-h / 2 + 2) + 'px;width:' + w + 'px">' + A.face(st.cards[asset].type, st.cards[asset].value) + '</div>';
+      if (top && set.cards.length > 2) html += '<span class="cnt" style="transform:rotate(' + (-rot).toFixed(1) + 'deg)">×' + set.cards.length + '</span>';
       html += '</div>';
     }
     return html;
+  }
+
+  // a held hand of card backs (opponents): fanned, turned to face you from across the table
+  function backFanHTML(n, w) {
+    if (!n) return '';
+    var h = w * 88 / 63, L = T ? T.fanLayout(n, { width: w * (1 + .45 * (n - 1)) + 8, cardW: w, cardH: h, spread: .45, maxRot: 14 }) : [];
+    var drop = L.reduce(function (m, p) { return Math.max(m, p.y); }, 0), out = '';
+    for (var i = 0; i < n; i++) {
+      var p = L[i] || { x: i * w * .45, y: 0, r: 0 };
+      out += backHTML('', ' style="--card-w:' + w + 'px;width:' + w + 'px;transform:translate(' + p.x + 'px,' + (p.y - drop) + 'px) rotate(' + p.r + 'deg)"');
+    }
+    return '<div class="ofan" style="width:' + (w * (1 + .45 * (n - 1)) + 8) + 'px;height:' + Math.ceil(h + drop) + 'px">' + out + '</div>';
   }
 
   // ---------- selection -> candidate actions ----------
@@ -249,6 +265,7 @@
     var cues = fxCues(v);
     if (FX) SF.perform(cues, FX, fxUI, 'pre'); // cards fly from where they were, before the redraw
     renderStatus(v); renderOpps(v); renderPiles(v); renderStack(v); renderHand(v); renderBar(v); renderMsg(v); renderSide(v); renderOverlay(v);
+    dealOpps(v);
     if (FX) SF.perform(cues, FX, fxUI, 'post');
   }
 
@@ -328,8 +345,9 @@
 
   function renderOpps(v) {
     var cands = candidates(v), html = '';
-    var w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 40 : 50) : 28;
-    oppOrder(v).forEach(function (s) {
+    var wide = window.innerWidth >= 900, w = wide ? (window.innerHeight < 820 ? 36 : 46) : (window.innerHeight < 460 ? 20 : 26), bw = wide ? (window.innerHeight < 820 ? 22 : 28) : 15;
+    var order = oppOrder(v);
+    order.forEach(function (s, oi) {
       var tgt = cands.filter(function (a) { return (a.t === 'challenge' || a.t === 'swap' || a.t === 'move') && a.target === s; });
       var isTurn = E.toAct(v) === s && v.phase !== 'roundEnd' && v.phase !== 'gameOver';
       var mate = v.cfg.teams && v.team[s] === v.team[me];
@@ -339,37 +357,53 @@
         var co = O.challengeOdds(v, me, s, ch.depth, E);
         chip = '<div class="chip" style="background:' + scale(co.pWin) + '">Steal ' + pct(co.pWin) + '</div>';
       } else if (tgt.length) chip = '<div class="chip" style="background:var(--accent)">' + (tgt[0].t === 'swap' ? 'Swap' : 'Move') + '</div>';
-      var top = E.topSet(v, s);
-      html += '<div class="opp' + (isTurn ? ' turn' : '') + (tgt.length ? ' target' : '') + (mate ? ' mate' : '') + '" data-seat="' + s + '">' +
-        '<div class="nm"><span>' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span><span class="hc"><i class="mini-back"></i>' + O.handLen(v, s) + '</span></div>' +
-        '<div class="tv"><b>' + money(E.stackValue(v, s)) + '</b>' + (top ? ' · top ' + money(E.setValue(v, top)) : '') + '</div>' +
-        '<div class="stk">' + stackHTML(v, s, w, false) + '</div>' + chip + '</div>';
+      // seats sit round the far side of the table: the outer ones a little lower and turned in
+      var top = E.topSet(v, s), t = order.length > 1 ? oi / (order.length - 1) * 2 - 1 : 0, hn = O.handLen(v, s);
+      html += '<div class="opp' + (isTurn ? ' turn' : '') + (tgt.length ? ' target' : '') + (mate ? ' mate' : '') + '" data-seat="' + s + '" style="--oy:' + Math.round(t * t * 26) + 'px;--or:' + (-t * 7).toFixed(1) + 'deg">' +
+        '<div class="ohand" aria-label="' + hn + ' cards in hand">' + backFanHTML(hn, bw) + '</div>' +
+        '<div class="stk">' + stackHTML(v, s, w, false) + '</div>' +
+        '<div class="nm"><span class="tbl-plate">' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span><b class="tv">' + money(E.stackValue(v, s)) + '</b>' + (top ? '<span class="otop">top ' + money(E.setValue(v, top)) + '</span>' : '') + '</div>' + chip + '</div>';
     });
     $('opps').innerHTML = html;
   }
 
+  // the draw pile is a real stack: its edge gets thinner as cards are drawn
+  function deckHTML(n) {
+    if (!n) return '<div class="slot tbl-spot"></div>';
+    var sh = T ? T.stackShadow(n, { perCard: .15, max: 14 }) : { shadow: '', thickness: 0 };
+    return '<div class="slot tbl-deck">' + backHTML('tbl-back', ' style="--tbl-stack:' + sh.shadow + ';--tbl-rise:' + (-sh.thickness) + 'px"') + '<span class="tbl-badge">' + n + '</span></div>';
+  }
   function renderPiles(v) {
     var cands = candidates(v), html = '';
     if (v.piles) {
       v.piles.forEach(function (p, i) {
         var can = cands.some(function (a) { return a.t === 'draft' && a.piles.indexOf(i) >= 0; });
         var usable = E.pilesFor(v, me).indexOf(i) >= 0;
-        html += '<div class="pile' + (can ? ' can' : '') + '" data-pile="' + i + '"><div class="slot">' + (p.count > 1 ? '<div class="depth"></div>' : '') +
-          (p.top != null ? cardHTML(v, p.top, '') : '') + '</div><div class="lbl">' + (usable ? 'Draft ' : 'Pile ') + (i + 1) + ' · ' + p.count + '</div></div>';
+        var sh = T ? T.stackShadow(p.count, { perCard: .5, max: 8 }) : { shadow: '', thickness: 0 };
+        html += '<div class="pile' + (can ? ' can' : '') + '" data-pile="' + i + '"><div class="slot' + (p.top == null ? ' tbl-spot' : '') + '">' +
+          (p.top != null ? cardHTML(v, p.top, '', ' style="box-shadow:' + sh.shadow + ';transform:translateY(' + (-sh.thickness) + 'px)"') : '') +
+          '<span class="tbl-badge">' + p.count + '</span></div><div class="lbl">' + (usable ? 'Draft ' : 'Pile ') + (i + 1) + '</div></div>';
       });
-      html += '<div class="pile"><div class="slot">' + (v.draw ? '<div class="depth"></div>' + backHTML('') : '') + '</div><div class="lbl">Draw · ' + v.draw + '</div></div>';
+      html += '<div class="pile" data-pile="draw">' + deckHTML(v.draw) + '<div class="lbl">Draw</div></div>';
     } else {
       var d = v.discard.length ? v.discard[v.discard.length - 1] : null;
       var canD = cands.some(function (a) { return a.t === 'pairDiscard'; });
       var fresh = d !== lastSeen.discardTop; lastSeen.discardTop = d;
-      html += '<div class="pile"><div class="slot">' + (v.draw ? '<div class="depth"></div>' + backHTML('') : '') + '</div><div class="lbl">Draw · ' + v.draw + '</div></div>';
-      html += '<div class="pile' + (canD ? ' can' : '') + '" data-pile="discard"><div class="slot">' + (d != null ? cardHTML(v, d, fresh ? 'flip' : '') : '') + '</div><div class="lbl">Discard · ' + v.discard.length + '</div></div>';
+      // discard pile: the last few cards, each a little askew (same tilt every redraw)
+      var pileCards = '', from = Math.max(0, v.discard.length - 4);
+      for (var i = from; i < v.discard.length; i++) {
+        var j = jit('discard', i, { rot: 11, off: 4 }), isTop = i === v.discard.length - 1;
+        pileCards += cardHTML(v, v.discard[i], isTop && fresh ? 'flip' : '', ' style="--x:' + j.x + 'px;--y:' + j.y + 'px;--r:' + j.r + 'deg"');
+      }
+      html += '<div class="pile" data-pile="draw">' + deckHTML(v.draw) + '</div>';
+      html += '<div class="pile' + (canD ? ' can' : '') + '" data-pile="discard"><div class="slot tbl-pile' + (d == null ? ' tbl-spot' : '') + '">' + pileCards +
+        (v.discard.length ? '<span class="tbl-badge">' + v.discard.length + '</span>' : '') + '</div></div>';
     }
     $('piles').innerHTML = html;
   }
 
   function renderStack(v) {
-    var k = v.stacks[me], w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 46 : 60) : 38;
+    var k = v.stacks[me], w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 44 : 56) : 36;
     var fresh = (lastSeen.sets[me] || 0) < k.length; lastSeen.sets = v.stacks.map(function (x) { return x.length; });
     var info = '<div class="big">' + money(E.stackValue(v, me)) + '</div><div>' + k.length + ' set' + (k.length === 1 ? '' : 's') + ' this round</div>';
     if (S.odds && k.length) {
@@ -386,18 +420,50 @@
     var h = v.hands[me];
     if (!Array.isArray(h)) { $('hand').innerHTML = ''; return; }
     var hintIds = hint ? handIds(hint.a).concat(hint.a.t === 'pairDiscard' ? [hint.a.card] : []) : [];
-    var prev = lastSeen.hand;
-    var html = '';
-    h.slice().sort(function (a, b) { return v.cards[b].value - v.cards[a].value || v.cards[a].type.localeCompare(v.cards[b].type) || a - b; }).forEach(function (id) {
-      var cls = (sel.indexOf(id) >= 0 ? 'sel ' : '') + (hintIds.indexOf(id) >= 0 ? 'hint ' : '') + (prev.indexOf(id) < 0 ? 'enter' : '');
-      html += cardHTML(v, id, cls);
+    var prev = lastSeen.hand, firstLook = !prev.length;
+    // held like real cards: a fan along the bottom edge, ends dipping and turned out a little
+    var W = Math.min($('hand').clientWidth || 9999, document.documentElement.clientWidth - 20), n = h.length, wide = window.innerWidth >= 900;
+    var cw = wide ? (window.innerHeight < 820 ? 92 : 118) : Math.min(84, Math.max(56, Math.floor(W / (1 + .86 * (Math.max(4, n) - 1)))));
+    var hh = $('hand').clientHeight; if (hh > 40) cw = Math.min(cw, Math.floor((hh - 20) * 63 / 88)); // never taller than the row CSS gives it
+    var L = T ? T.fanLayout(n, { width: W, cardW: cw, cardH: cw * 88 / 63, spread: wide ? .82 : .9, maxRot: 12 }) : [];
+    var drop = L.reduce(function (m, p) { return Math.max(m, p.y); }, 0);
+    var html = '', fresh = [];
+    h.slice().sort(function (a, b) { return v.cards[b].value - v.cards[a].value || v.cards[a].type.localeCompare(v.cards[b].type) || a - b; }).forEach(function (id, i) {
+      var isNew = prev.indexOf(id) < 0;
+      if (isNew) fresh.push(id);
+      var cls = (sel.indexOf(id) >= 0 ? 'sel ' : '') + (hintIds.indexOf(id) >= 0 ? 'hint ' : '') + (isNew && (firstLook || !T) ? 'enter' : '');
+      var p = L[i] || { x: i * cw, y: 0, r: 0 };
+      html += cardHTML(v, id, cls, ' style="--card-w:' + cw + 'px;--x:' + p.x + 'px;--y:' + (p.y - drop).toFixed(1) + 'px;--r:' + p.r + 'deg;z-index:' + (i + 1) + '"');
     });
     lastSeen.hand = h.slice();
-    // cards as big as the row allows (phone), fixed size on laptop
-    var W = Math.min($('hand').clientWidth || 9999, document.documentElement.clientWidth - 20), n = Math.max(4, h.length);
-    var cw = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 96 : 124) : Math.min(80, Math.floor((W - 4 * (n - 1)) / n));
     $('hand').style.setProperty('--cw', cw + 'px');
     $('hand').innerHTML = html;
+    if (!firstLook && fresh.length) dealTo(fresh.map(function (id) { return $('hand').querySelector('.card[data-id="' + id + '"]'); }));
+  }
+  // drawn cards fly face down off the draw pile into the hand, then turn face up
+  function dealTo(els) {
+    var deck = document.querySelector('.pile[data-pile="draw"] .tbl-back');
+    if (!T || !deck || !T.animOn()) return;
+    els.forEach(function (el, i) {
+      if (!el) return;
+      el.style.visibility = 'hidden';
+      setTimeout(function () {
+        T.deal(deck, el, { duration: 360, face: backHTML('') }).then(function () { el.style.visibility = ''; el.classList.add('flip'); });
+      }, i * 140);
+    });
+  }
+  // opponents' draws: a back flies from the draw pile to their hand
+  var oppSeen = {};
+  function dealOpps(v) {
+    var deck = document.querySelector('.pile[data-pile="draw"] .tbl-back'), key = host;
+    if (oppSeen.host !== key) { oppSeen = { host: key }; }
+    oppOrder(v).forEach(function (s) {
+      var n = O.handLen(v, s), was = oppSeen[s];
+      oppSeen[s] = n;
+      if (was == null || n <= was || !deck || !T || !T.animOn()) return;
+      var to = document.querySelector('.opp[data-seat="' + s + '"] .ohand');
+      for (var i = 0; i < Math.min(3, n - was); i++) (function (k) { setTimeout(function () { T.deal(deck, to, { duration: 380, face: backHTML('') }); }, k * 140); })(i);
+    });
   }
 
   function renderBar(v) {
@@ -497,7 +563,7 @@
       });
       lastSeen.plays = n;
       var setCards = set.cards.map(function (id) { return cardHTML(v, id, ''); }).join('');
-      html = '<div class="panel"><h2>' + esc(seatName(b.attacker)) + ' challenges ' + esc(b.defender === me ? 'you' : seatName(b.defender)) + '</h2>' +
+      html = '<div class="panel mat tbl-surface tbl-wood-dark"><h2>' + esc(seatName(b.attacker)) + ' challenges ' + esc(b.defender === me ? 'you' : seatName(b.defender)) + '</h2>' +
         '<div class="sub">For the ' + tname(set.type) + ' set (' + money(E.setValue(v, set)) + '). Last card played wins it all.</div>' +
         '<div class="fight"><div class="side-r">' + setCards + '</div></div>' +
         '<div class="fight duel"><div class="lane"><div class="side-l">' + (att || '<i class="slot0"></i>') + '</div><div class="who">' + esc(seatName(b.attacker)) + '</div></div><span class="vs">vs</span>' +
@@ -515,7 +581,7 @@
       html += '</div>';
     } else if (v.phase === 'offer') {
       var o = v.offer, top = E.topSet(v, o.owner);
-      html = '<div class="panel"><h2>' + esc(seatName(o.owner)) + ' drafted ' + tname(top.type) + '</h2><div class="sub">' + money(E.setValue(v, top)) + '. ' + esc(t === me ? 'You' : seatName(t)) + ' may challenge for it.</div>' +
+      html = '<div class="panel mat tbl-surface tbl-wood-dark"><h2>' + esc(seatName(o.owner)) + ' drafted ' + tname(top.type) + '</h2><div class="sub">' + money(E.setValue(v, top)) + '. ' + esc(t === me ? 'You' : seatName(t)) + ' may challenge for it.</div>' +
         '<div class="fight">' + top.cards.map(function (id) { return cardHTML(v, id, ''); }).join('') + '</div>';
       if (mine) {
         var L2 = E.legal(v); ov._legal = L2;
@@ -550,7 +616,7 @@
     var title = v.phase === 'gameOver' ? (v.winner.seats.indexOf(me) >= 0 && host.seats[me].kind === 'human' ? 'You win!' : v.winner.seats.map(seatName).join(' & ') + (v.winner.seats.length > 1 || seatName(v.winner.seats[0]) === 'You' ? ' win' : ' wins')) : 'Round ' + v.round + ' done';
     var sub = v.phase === 'gameOver' ? 'Final totals.' : (v.cfg.format === 'million' ? 'First to $1,000,000 wins.' : v.cfg.format === 'three' ? 'Highest after 3 rounds.' : v.cfg.format === 'bestof2' ? 'First to win 2 rounds.' : '');
     var c = S.coach && coach.moves ? '<div class="sub" style="margin-top:8px">Coach: you left about <b>' + money(Math.round(coach.lost)) + '</b> on the table over ' + coach.moves + ' choices.</div>' : '';
-    return '<div class="panel"><h2>' + esc(title) + '</h2><div class="sub">' + sub + '</div><table class="scores"><tr><th>Player</th><th>Round</th><th>Total</th>' + (v.cfg.format === 'bestof2' ? '<th>Wins</th>' : '') + '</tr>' + rows + '</table>' + c +
+    return '<div class="panel scorepad"><h2>' + esc(title) + '</h2><div class="sub">' + sub + '</div><table class="scores"><tr><th>Player</th><th>Round</th><th>Total</th>' + (v.cfg.format === 'bestof2' ? '<th>Wins</th>' : '') + '</tr>' + rows + '</table>' + c +
       '<div class="row">' + (v.phase === 'gameOver' ? '<button class="btn" data-ov="new">' + (online() ? 'Leave room' : 'New game') + '</button>' :
         online() && !host.snap.myTurn ? '<span class="sub">Waiting for ' + esc(seatName(host.snap.toAct[0])) + '…</span>' : '<button class="btn" data-ov="next">Next round</button>') + '</div></div>';
   }
