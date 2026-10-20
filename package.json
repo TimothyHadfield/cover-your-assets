@@ -1,0 +1,9 @@
+{
+  "name": "cover-your-assets",
+  "private": true,
+  "description": "Cover Your Assets: play, odds, table tracker and lab. Static site, no dependencies.",
+  "scripts": {
+    "test": "node tests/engine.test.js && node tests/ai.test.js && node tests/online.test.mjs",
+    "lab": "node tools/lab-data.js 1"
+  }
+}

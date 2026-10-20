@@ -78,7 +78,9 @@ eq(st.phase, 'battle', 'challenge starts a battle'); eq(E.toAct(st), 2, 'defende
 var ans = find(E.legal(st), function (a) { return a.t === 'play'; });
 st = E.apply(st, ans);
 eq(E.toAct(st), 0, 'back to the challenger');
+var topDraw = st.draw[0];
 st = E.apply(st, find(E.legal(st), function (a) { return a.t === 'play'; }));
+ok(st.hands[0].indexOf(topDraw) >= 0 && st.hands[2].indexOf(topDraw) < 0, 'after a challenge the challenger draws first, then the defender');
 eq(st.phase, 'turn', 'defender out of matches: battle ends');
 eq(st.stacks[2].length, 1, 'stolen set left the defender');
 var won = st.stacks[0][st.stacks[0].length - 1];

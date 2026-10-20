@@ -8,8 +8,8 @@ window.CYALabData = {
     "players": 4,
     "test": "hard",
     "field": "medium",
-    "games": 25,
-    "winRate": 0.96,
+    "games": 500,
+    "winRate": 0.922,
     "fair": 0.25
    },
    {
@@ -17,8 +17,8 @@ window.CYALabData = {
     "players": 4,
     "test": "medium",
     "field": "easy",
-    "games": 25,
-    "winRate": 0.8,
+    "games": 500,
+    "winRate": 0.776,
     "fair": 0.25
    },
    {
@@ -26,7 +26,7 @@ window.CYALabData = {
     "players": 4,
     "test": "hard",
     "field": "easy",
-    "games": 25,
+    "games": 500,
     "winRate": 1,
     "fair": 0.25
    },
@@ -35,8 +35,8 @@ window.CYALabData = {
     "players": 2,
     "test": "hard",
     "field": "medium",
-    "games": 25,
-    "winRate": 0.96,
+    "games": 500,
+    "winRate": 0.974,
     "fair": 0.5
    },
    {
@@ -44,8 +44,8 @@ window.CYALabData = {
     "players": 2,
     "test": "medium",
     "field": "easy",
-    "games": 25,
-    "winRate": 0.96,
+    "games": 500,
+    "winRate": 0.968,
     "fair": 0.5
    },
    {
@@ -53,214 +53,214 @@ window.CYALabData = {
     "players": 2,
     "test": "hard",
     "field": "easy",
-    "games": 25,
+    "games": 500,
     "winRate": 1,
     "fair": 0.5
    }
   ],
-  "note": "25 full games per line to $1,000,000, classic deck, every seat rotated."
+  "note": "500 full games per line to $1,000,000, classic deck, every seat rotated."
  },
  "byPlayers": [
   {
    "players": 2,
-   "games": 15,
-   "rounds": 2,
-   "perRound": 657166.6666666666,
-   "fightsPerGame": 33.93333333333333,
-   "stealRate": 0.7190569744597249,
+   "games": 300,
+   "rounds": 1.9833333333333334,
+   "perRound": 658737.2881355932,
+   "fightsPerGame": 32.446666666666665,
+   "stealRate": 0.7215944113416889,
    "seatWin": [
-    0.6,
-    0.4
+    0.51,
+    0.49
    ]
   },
   {
    "players": 3,
-   "games": 15,
-   "rounds": 2.1333333333333333,
-   "perRound": 442254.9019607842,
-   "fightsPerGame": 55.733333333333334,
-   "stealRate": 0.6686602870813397,
+   "games": 300,
+   "rounds": 2.13,
+   "perRound": 439616.5191740413,
+   "fightsPerGame": 56.473333333333336,
+   "stealRate": 0.709243300672884,
    "seatWin": [
-    0.2,
-    0.4666666666666667,
-    0.3333333333333333
+    0.30666666666666664,
+    0.30666666666666664,
+    0.38666666666666666
    ]
   },
   {
    "players": 4,
-   "games": 15,
-   "rounds": 2.533333333333333,
-   "perRound": 325108.6956521739,
-   "fightsPerGame": 82.26666666666667,
-   "stealRate": 0.7390599675850892,
+   "games": 300,
+   "rounds": 2.5533333333333332,
+   "perRound": 328031.11587982834,
+   "fightsPerGame": 83.38,
+   "stealRate": 0.7217558167426241,
    "seatWin": [
-    0.4,
-    0.26666666666666666,
-    0.13333333333333333,
-    0.2
+    0.22333333333333333,
+    0.23,
+    0.2866666666666667,
+    0.26
    ]
   },
   {
    "players": 5,
-   "games": 15,
-   "rounds": 2.933333333333333,
-   "perRound": 261034.4827586207,
-   "fightsPerGame": 109.6,
-   "stealRate": 0.7293187347931873,
+   "games": 300,
+   "rounds": 2.8866666666666667,
+   "perRound": 263021.20141342754,
+   "fightsPerGame": 107.18,
+   "stealRate": 0.7370778130248181,
    "seatWin": [
-    0.13333333333333333,
-    0.13333333333333333,
-    0.06666666666666667,
-    0.3333333333333333,
-    0.3333333333333333
+    0.19,
+    0.19666666666666666,
+    0.18666666666666668,
+    0.20666666666666667,
+    0.22
    ]
   },
   {
    "players": 6,
-   "games": 15,
-   "rounds": 3.066666666666667,
-   "perRound": 219327.95698924738,
-   "fightsPerGame": 120.06666666666666,
-   "stealRate": 0.7556912826207662,
+   "games": 300,
+   "rounds": 3.2,
+   "perRound": 218816.91919191944,
+   "fightsPerGame": 128.08666666666667,
+   "stealRate": 0.7432988080986832,
    "seatWin": [
-    0.2,
-    0.3333333333333333,
-    0.2,
-    0.2,
-    0.06666666666666667,
-    0
+    0.19333333333333333,
+    0.17666666666666667,
+    0.13333333333333333,
+    0.19333333333333333,
+    0.14666666666666667,
+    0.15666666666666668
    ]
   }
  ],
  "mix": [
   {
    "t": "challenge",
-   "share": 0.40353172007848265
+   "share": 0.4118683417581875
   },
   {
    "t": "discard",
-   "share": 0.24035317200784825
+   "share": 0.2304513197108656
   },
   {
    "t": "pair",
-   "share": 0.17920209287115763
+   "share": 0.18703176197454432
   },
   {
    "t": "pairDiscard",
-   "share": 0.17691301504251145
+   "share": 0.17064857655640261
   }
  ],
  "stealsByStage": [
   {
    "stage": 0,
-   "perTurn": 0.02027027027027027
+   "perTurn": 0.025848960973137353
   },
   {
    "stage": 1,
-   "perTurn": 0.16279069767441862
+   "perTurn": 0.17429951690821255
   },
   {
    "stage": 2,
-   "perTurn": 0.25868725868725867
+   "perTurn": 0.2589942357384218
   },
   {
    "stage": 3,
-   "perTurn": 0.3309608540925267
+   "perTurn": 0.3126381724392041
   },
   {
    "stage": 4,
-   "perTurn": 0.36554621848739494
+   "perTurn": 0.34965902045877245
   },
   {
    "stage": 5,
-   "perTurn": 0.3865546218487395
+   "perTurn": 0.3489550348321723
   },
   {
    "stage": 6,
-   "perTurn": 0.35185185185185186
+   "perTurn": 0.363118952760387
   },
   {
    "stage": 7,
-   "perTurn": 0.401673640167364
+   "perTurn": 0.370583226905066
   },
   {
    "stage": 8,
-   "perTurn": 0.36324786324786323
+   "perTurn": 0.37341772151898733
   },
   {
    "stage": 9,
-   "perTurn": 0.33422818791946307
+   "perTurn": 0.3510574018126888
   }
  ],
  "stolenByType": [
   {
-   "type": "home",
-   "made": 69,
-   "stolen": 94,
-   "rate": 1.3623188405797102
-  },
-  {
    "type": "auto",
-   "made": 88,
-   "stolen": 111,
-   "rate": 1.2613636363636365
+   "made": 1875,
+   "stolen": 2118,
+   "rate": 1.1296
   },
   {
    "type": "jewels",
-   "made": 104,
-   "stolen": 100,
-   "rate": 0.9615384615384616
+   "made": 1877,
+   "stolen": 2097,
+   "rate": 1.1172083111347895
+  },
+  {
+   "type": "home",
+   "made": 1564,
+   "stolen": 1688,
+   "rate": 1.0792838874680306
   },
   {
    "type": "stocks",
-   "made": 112,
-   "stolen": 97,
-   "rate": 0.8660714285714286
-  },
-  {
-   "type": "coins",
-   "made": 110,
-   "stolen": 93,
-   "rate": 0.8454545454545455
+   "made": 2117,
+   "stolen": 1986,
+   "rate": 0.9381199811053378
   },
   {
    "type": "bank",
-   "made": 114,
-   "stolen": 96,
-   "rate": 0.8421052631578947
+   "made": 2156,
+   "stolen": 1932,
+   "rate": 0.8961038961038961
+  },
+  {
+   "type": "coins",
+   "made": 2125,
+   "stolen": 1897,
+   "rate": 0.8927058823529411
   },
   {
    "type": "baseball",
-   "made": 115,
-   "stolen": 87,
-   "rate": 0.7565217391304347
-  },
-  {
-   "type": "stamps",
-   "made": 123,
-   "stolen": 81,
-   "rate": 0.6585365853658537
+   "made": 2480,
+   "stolen": 1609,
+   "rate": 0.6487903225806452
   },
   {
    "type": "cash",
-   "made": 125,
-   "stolen": 80,
-   "rate": 0.64
+   "made": 2525,
+   "stolen": 1604,
+   "rate": 0.6352475247524753
   },
   {
    "type": "piggy",
-   "made": 129,
-   "stolen": 73,
-   "rate": 0.5658914728682171
+   "made": 2497,
+   "stolen": 1580,
+   "rate": 0.6327593111734081
+  },
+  {
+   "type": "stamps",
+   "made": 2507,
+   "stolen": 1543,
+   "rate": 0.6154766653370563
   }
  ],
- "avgStolen": 60115.13157894737,
- "games4": 15,
+ "avgStolen": 61026.365348399246,
+ "games4": 300,
  "nest": {
-  "games": 20,
-  "winRate": 0.35,
+  "games": 400,
+  "winRate": 0.24,
   "fair": 0.25,
   "note": "One hard bot always makes its first set (the safe nest egg) as valuable as possible, wilds included; the other three play normally."
  },
- "seconds": 18
+ "seconds": 383
 };

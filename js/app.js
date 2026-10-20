@@ -53,6 +53,7 @@
   function humans() { var o = []; S.seats.forEach(function (s, i) { if (s.kind === 'human') o.push(i); }); return o; }
 
   function newGame() {
+    if (online()) { var h = host; host = null; window.CYANet.leave(); if (h) h.stop(); }
     var cfg = { players: S.players, edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format };
     var st = E.newGame(cfg);
     startHost(st);
@@ -68,12 +69,37 @@
     host = new window.CYATransport.LocalHost(st, seats, { delay: delayFor });
     host.onChange(function (st2, info) { onChange(info); });
   }
-  function save() { if (host) LS.set('cya.game', { state: host.state, seats: host.seats, me: me }); }
+  function save() { if (host && !host.online) LS.set('cya.game', { state: host.state, seats: host.seats, me: me }); }
 
   function seatName(s) { return host && host.seats[s] ? host.seats[s].name : NAMES[s]; }
   function V() { return host.viewFor(me); }
 
+  // ---------- online room (js/net.js supplies a host with the same interface) ----------
+  var lastSeq = null;
+  function useHost(h) {
+    if (host && !host.online) { save(); host.stop(); }
+    host = h; me = Math.max(0, h.snap.mySeat); lastSeq = null; passCover = false;
+    h.onChange(function () { if (host === h) onChange({}); });
+    sel = []; mode = null; hint = null; lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 };
+    showTab('play');
+  }
+  function endOnline(msg) {
+    if (msg) toast(msg);
+    if (!host || !host.online) return;
+    host = null; loadLocal();
+    if ($('settings').offsetParent) renderSettings();
+    render();
+  }
+  function online() { return !!(host && host.online); }
+
   function onChange(info) {
+    if (online()) {
+      var sn = host.snap; me = Math.max(0, sn.mySeat);
+      var seq = sn.pub ? sn.pub.seq + ':' + sn.pub.round + ':' + sn.pub.phase : null;
+      if (seq !== lastSeq) { sel = []; mode = null; hint = null; lastSeq = seq; host.busy = false; }
+      render(); if ($('settings').offsetParent) renderSettings();
+      return;
+    }
     var st = host.state;
     // multiple people on one phone: follow whoever must act next
     var t = E.toAct(st);
@@ -159,7 +185,7 @@
   }
 
   // ---------- selection -> candidate actions ----------
-  function myTurn(v) { return v.phase === 'turn' && E.toAct(v) === me && host.seats[me].kind === 'human'; }
+  function myTurn(v) { return v.phase === 'turn' && E.toAct(v) === me && host.seats[me].kind === 'human' && !host.busy; }
   function typesKey(st, ids) { return ids.map(function (id) { return st.cards[id].type; }).sort().join('+'); }
   function handIds(a) { return a.cards ? a.cards : (a.card != null ? [a.card] : []); }
   function candidates(v) {
@@ -177,9 +203,16 @@
   }
 
   function act(a) {
+    if (host.busy) return;
     var v = V();
     if (S.coach && host.seats[me].kind === 'human') coachCheck(v, a);
-    try { host.submit(me, a); } catch (e) { toast('Not allowed: ' + e.message); }
+    try {
+      var r = host.submit(me, a);
+      if (r && r.then) { // online: one move in flight at a time
+        var h = host; h.busy = true; sel = []; render();
+        r.then(function (x) { if (x && !x.ok) { h.busy = false; if (x.message) toast(x.message); render(); } });
+      }
+    } catch (e) { toast('Not allowed: ' + e.message); }
   }
 
   function sig(st, a) {
@@ -206,13 +239,59 @@
   function render() {
     if (!host) return;
     var v = V();
+    if (!v) return renderLobby();
     renderStatus(v); renderOpps(v); renderPiles(v); renderStack(v); renderHand(v); renderBar(v); renderMsg(v); renderSide(v); renderOverlay(v);
+  }
+
+  // online room before the deal: who is in, the code to share, Start for the host
+  function renderLobby() {
+    var sn = host.snap || {};
+    ['opps', 'piles', 'mystack', 'hand', 'bar', 'msg'].forEach(function (id) { $(id).innerHTML = ''; });
+    $('status').innerHTML = sn.code ? 'Room <b>' + esc(sn.code) + '</b>' : 'Online';
+    var seats = (sn.seats || []).map(function (s, i) {
+      var tag = i === sn.mySeat ? 'You' : s.kind === 'empty' ? 'Open' : s.kind === 'computer' ? 'Computer' : (s.online ? 'Joined' : 'Away');
+      var btn = sn.isHost && i !== sn.mySeat && s.kind !== 'human' ? '<button class="btn ghost sm" data-net="seat' + i + '">' + (s.kind === 'empty' ? 'Make computer' : 'Open it') + '</button>' : '';
+      return '<tr><td>' + esc(s.kind === 'empty' ? 'Seat ' + (i + 1) : s.name) + (s.isHost ? ' ★' : '') + '</td><td>' + tag + '</td><td>' + btn + '</td></tr>';
+    }).join('');
+    var html = '<div class="panel"><h2>Room <span class="code">' + esc(sn.code || '…') + '</span></h2>' +
+      '<div class="sub">Friends open this site, go to Settings › Online and type the code. Open seats become computers when you start.</div>' +
+      '<table class="scores">' + seats + '</table><div class="row">' +
+      (sn.isHost ? '<button class="btn" data-net="start">Start game</button>' : '<span class="sub">Waiting for the host to start…</span>') +
+      '<button class="btn ghost" data-net="leave">Leave</button></div></div>';
+    var ov = $('overlay');
+    if (ov.dataset.kind !== 'lobby') html = html.replace('<div class="panel', '<div class="panel pop');
+    ov.dataset.kind = 'lobby'; ov.innerHTML = html; ov.hidden = false;
+    if (window.innerWidth >= 900) { $('oddsPanel').innerHTML = ''; $('log').innerHTML = ''; }
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-net]'); if (!b || !window.CYANet) return;
+    var k = b.dataset.net, sn = host && host.snap;
+    if (k === 'start') window.CYANet.start();
+    else if (k === 'leave') { window.CYANet.leave(); }
+    else if (k.indexOf('seat') === 0 && sn) { var i = +k.slice(4); window.CYANet.setSeat(i, sn.seats[i].kind === 'empty' ? 'computer' : 'empty'); }
+    else if (k === 'create') netCreate();
+    else if (k === 'join') netJoin();
+  });
+  function myName() { var n = ($('netName') && $('netName').value.trim()) || S.netName || 'Player'; S.netName = n.slice(0, 16); saveSettings(); return S.netName; }
+  function netBusy(on) { document.querySelectorAll('[data-net="create"],[data-net="join"]').forEach(function (b) { b.disabled = on; }); }
+  function netCreate() {
+    var seats = S.seats.slice(0, S.players).map(function (s, i) { return i === 0 ? 'human' : s.kind === 'human' ? 'empty' : 'computer'; });
+    var options = { edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format,
+      levels: S.seats.slice(0, S.players).map(function (s) { return s.level || S.level; }) };
+    netBusy(true); $('netNote').textContent = 'Opening a room…';
+    window.CYANet.create(myName(), seats, options).then(function (r) { netBusy(false); if (!r.ok) $('netNote').textContent = r.message || 'Could not open a room.'; });
+  }
+  function netJoin() {
+    var code = ($('netCode').value || '').trim();
+    if (code.length < 4) { $('netNote').textContent = 'Type the 5-letter room code.'; return; }
+    netBusy(true); $('netNote').textContent = 'Joining…';
+    window.CYANet.join(code, myName()).then(function (r) { netBusy(false); if (!r.ok) $('netNote').textContent = r.message || 'Could not join.'; });
   }
 
   function renderStatus(v) {
     var tot = v.cfg.teams ? E.units(v, v.totals).vals[v.team[me]] : v.totals[me];
     var target = v.cfg.format === 'million' ? ' of $1M' : '';
-    $('status').innerHTML = 'Round ' + v.round + ' · <b>' + money(tot + 0) + '</b>' + target;
+    $('status').innerHTML = (online() ? 'Room <b>' + esc(host.snap.code) + '</b> · ' : '') + 'Round ' + v.round + ' · <b>' + money(tot + 0) + '</b>' + target;
   }
 
   function oppOrder(v) { var o = []; for (var i = 1; i < v.cfg.players; i++) o.push((me + i) % v.cfg.players); return o; }
@@ -433,11 +512,12 @@
       return '<tr><td>' + esc(nm) + '<div class="meter"><i style="width:' + Math.min(100, u.vals[i] / max * 100) + '%"></i></div></td><td>' + money(r.vals[i]) + '</td><td><b>' + money(u.vals[i]) + '</b></td>' +
         (v.cfg.format === 'bestof2' ? '<td>' + (E.units(v, v.roundWins).vals[i] / seats.length) + '</td>' : '') + '</tr>';
     }).join('');
-    var title = v.phase === 'gameOver' ? (v.winner.seats.indexOf(me) >= 0 && host.seats[me].kind === 'human' ? 'You win!' : v.winner.seats.map(seatName).join(' & ') + ' wins') : 'Round ' + v.round + ' done';
+    var title = v.phase === 'gameOver' ? (v.winner.seats.indexOf(me) >= 0 && host.seats[me].kind === 'human' ? 'You win!' : v.winner.seats.map(seatName).join(' & ') + (v.winner.seats.length > 1 || seatName(v.winner.seats[0]) === 'You' ? ' win' : ' wins')) : 'Round ' + v.round + ' done';
     var sub = v.phase === 'gameOver' ? 'Final totals.' : (v.cfg.format === 'million' ? 'First to $1,000,000 wins.' : v.cfg.format === 'three' ? 'Highest after 3 rounds.' : v.cfg.format === 'bestof2' ? 'First to win 2 rounds.' : '');
     var c = S.coach && coach.moves ? '<div class="sub" style="margin-top:8px">Coach: you left about <b>' + money(Math.round(coach.lost)) + '</b> on the table over ' + coach.moves + ' choices.</div>' : '';
     return '<div class="panel"><h2>' + esc(title) + '</h2><div class="sub">' + sub + '</div><table class="scores"><tr><th>Player</th><th>Round</th><th>Total</th>' + (v.cfg.format === 'bestof2' ? '<th>Wins</th>' : '') + '</tr>' + rows + '</table>' + c +
-      '<div class="row">' + (v.phase === 'gameOver' ? '<button class="btn" data-ov="new">New game</button>' : '<button class="btn" data-ov="next">Next round</button>') + '</div></div>';
+      '<div class="row">' + (v.phase === 'gameOver' ? '<button class="btn" data-ov="new">' + (online() ? 'Leave room' : 'New game') + '</button>' :
+        online() && !host.snap.myTurn ? '<span class="sub">Waiting for ' + esc(seatName(host.snap.toAct[0])) + '…</span>' : '<button class="btn" data-ov="next">Next round</button>') + '</div></div>';
   }
 
   // ---------- input ----------
@@ -485,7 +565,7 @@
   function onOverlay(k) {
     var v = V();
     if (k === 'ready') { passCover = false; render(); return; }
-    if (k === 'next') { host.submit(me, { t: 'next' }); return; }
+    if (k === 'next') { act({ t: 'next' }); return; }
     if (k === 'new') { newGame(); return; }
     if (k === 'cancel') { mode = null; render(); return; }
     if (k[0] === 'M') { var a = mode.opts[+k.slice(1)]; mode = null; act(a); return; }
@@ -563,7 +643,14 @@
     html += row('Coach <button class="q" data-q="coach">?</button>', sw('coach', S.coach));
     html += row('Computer speed', '<select data-set="speed">' + ['slow', 'normal', 'fast'].map(function (o) { return '<option' + (o === S.speed ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>');
     html += '<div class="sidehead">Online</div>';
-    html += '<div class="setrow"><span class="lab2" id="onlineNote">Online rooms are being set up. Play computers or pass the phone for now.</span></div>';
+    if (online()) {
+      html += row('Room <b>' + esc(host.snap.code || '') + '</b>', '<button class="btn ghost" data-net="leave">Leave room</button>');
+    } else {
+      html += row('Your name', '<input type="text" id="netName" maxlength="16" value="' + esc(S.netName || '') + '" placeholder="Name">');
+      html += row('New room <button class="q" data-q="room">?</button>', '<button class="btn" data-net="create">Create room</button>');
+      html += row('Join', '<input type="text" id="netCode" maxlength="5" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="btn" data-net="join">Join</button>');
+    }
+    html += '<div class="setrow"><span class="lab2" id="netNote" style="color:var(--muted);font-size:13px"></span></div>';
     html += '<div class="sidehead">How strong are the computers? <button class="q" data-q="strength">?</button></div>';
     html += '<div class="setrow" style="display:block;color:var(--muted);font-size:13px" id="strengthNote"></div>';
     $('settings').innerHTML = html;
@@ -593,6 +680,7 @@
     adv: 'From the 2021 box: hold 6 cards, take up to 2 actions a turn, add matching cards to your top set, challenge the 2nd set from the top with 2 cards, and use Swap, Move and Penny Jar.',
     draft: 'The 2021 rules for 2 or 3 players: three face-up draft piles you can claim sets from. The player beside the pile may challenge for the set.',
     teams: 'House rule, not in the rulebook: partners sit across, can\'t steal from each other, and add their money together.',
+    room: 'Opens an online room with the game settings above. Seats set to Person stay open for friends who join with the code; computer seats stay computers. Your phone runs the computers, so keep this page open.',
     coach: 'After each of your moves, the hard computer scores what you did. If its choice was clearly better, it tells you, and keeps a running total.',
     strength: 'Measured by playing thousands of full games between the computer levels on this site, with seats rotated.'
   });
@@ -616,15 +704,19 @@
   }
 
   // ---------- boot ----------
-  function boot() {
+  function loadLocal() {
     var saved = LS.get('cya.game', null);
     if (saved && saved.state && saved.state.cards) {
       try {
         S.seats = saved.seats.map(function (s, i) { return Object.assign({}, S.seats[i] || {}, s); }).concat(S.seats.slice(saved.seats.length));
         startHost(saved.state); me = saved.me || 0;
+        lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 }; sel = []; mode = null; hint = null;
         host.schedule();
       } catch (e) { newGame(); }
     } else newGame();
+  }
+  function boot() {
+    loadLocal();
     var start = location.hash.slice(1) || LS.get('cya.tab', 'play');
     if (['play', 'table', 'lab', 'rules', 'settings'].indexOf(start) < 0) start = 'play';
     try { history.replaceState({ tab: start }, '', '#' + start); } catch (e) { /* ignore */ }
@@ -632,6 +724,6 @@
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 120); });
   }
-  window.CYAApp = { money: money, pct: pct, scale: scale, esc: esc, LS: LS, toast: toast, TIPS: TIPS, get host() { return host; }, get me() { return me; }, newGame: newGame, render: render };
+  window.CYAApp = { money: money, pct: pct, scale: scale, esc: esc, LS: LS, toast: toast, TIPS: TIPS, get host() { return host; }, get me() { return me; }, newGame: newGame, render: render, useHost: useHost, endOnline: endOnline };
   boot();
 })();

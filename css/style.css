@@ -239,3 +239,12 @@ main { flex: 1 1 auto; min-height: 0; position: relative; }
   .pick { grid-template-columns: repeat(6, 1fr); }
 }
 @media (max-height: 640px) and (max-width: 899px) { :root { --cw: 56px; } .opp { height: 96px; } }
+/* online rooms */
+.panel .code { font-family: ui-monospace, Menlo, monospace; letter-spacing: .12em; color: var(--warm); font-size: 1.25em; }
+.setrow #netCode { width: 84px; text-transform: uppercase; letter-spacing: .1em; font-family: ui-monospace, Menlo, monospace; }
+.setrow #netName { width: 140px; }
+.setrow input[type=text] { font-size: 16px; }
+/* form controls: same dark look in Safari (WebKit ignores colours on native selects) */
+select, input[type=text], input[type=number] { -webkit-appearance: none; appearance: none; background-color: var(--bg-soft); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 16px; }
+select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23969db4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; }
+.setrow:has(#netNote:empty) { display: none; }
