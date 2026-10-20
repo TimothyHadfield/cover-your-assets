@@ -1,7 +1,7 @@
 # Cover Your Assets — progress
 
 ## START HERE
-Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-20 (sounds, celebrations, animations).
+Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-20 (real-table look).
 
 ## Goal right now
 Phase-2 games project: exact rules, play vs computers or online players, hint, odds, real-table tracker, data lab, original art. Built and live; waiting on Tim's feedback.
@@ -18,6 +18,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 | Art: original SVG faces, back, icons | Done |
 | Visual design pass (2026-10-20) | Done: bigger stacks/piles, turn glow on your area, labelled challenge lanes, 40px taps, compact Table rows, 2-column laptop Settings, fits 1280x720 |
 | Sounds, celebrations, animations (2026-10-20) | Done: `js/fx.js` (copy of `_fx/fx.js`, never edit) + `js/sfx.js` (event diff → cues) + Settings "Sound & effects"; `tests/fx.test.js` |
+| Real-table look (2026-10-20, commit 2ebe5e5) | Done: Play tab is a wood kitchen table (`css/table.css` + `js/table.js` = byte copies of `_table`, never edit). Poker-ratio cards (63/88) with engraved per-asset border colours (`FRAME` in `js/art.js`); stacks = criss-cross towers of the last 6 sets (seeded tilt); opponents = name plate + fanned backs (real hand size) + tower, outer seats lowered/turned on laptop; draw pile thins (stackShadow .15/card); discard = last 4 cards askew; hand = fan (`TABLE.fanLayout`), card size capped by the row height; draws fly face-down from the deck then turn up; challenge panel on a wood mat; round totals on a paper score pad; landscape phone and SE-size layouts. fx.js re-copied at 1.0.3 (`data-fxspeed`; game Speed untouched, checked) |
 
 ## Event → sound map (js/sfx.js; others' moves at 0.8 volume)
 | Event (log entry) | Sound | Animation |
@@ -48,7 +49,12 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 - "Really work on the webdesign of the games, aswell as art, fitting it with an iphone and computer"
 - (2026-10-20) "add opptional sounds you can add to the games that reflect what's happening in the game accurately as well as win celebrations, and other fun annimations to go along with everything. Just make sure everything is customizable in the settings so the user can play as preffered."
 
+- (2026-10-20) "make sure that each of the games also have a look to them so that the game (either board or card layout) looks almost identical to how the board or card layout looks like in real life ... Make the decks look like actual decks ... It should look kind of like you're looking through a camera that is connected to a user's glasses that is playing in real life (not actually, but the layout and style of everything should be similar)."
+
 ## Traps
+- Never use class `top` on table elements: `.top` is the header bar (it drew a stray line under stacks once).
+- Hand cards are positioned by `--x/--y/--r` in `transform`; animate them with `translate`/`rotate` properties (see `handIn`, `turnUp`), never `transform`, or they snap to the left.
+- Playwright `tap()` on hand cards times out (live before and after this change); `click()` works. Not seen on a real phone yet.
 - Headless WebKit on Windows is slow (~85 ms per render). Use `speed: "test"` in `cya.settings` for full-game screenshots.
 - WebKit ignores colours on native `<select>`; the global `appearance: none` rule at the end of `css/style.css` fixes it.
 - Online room creation takes 10-40 s the first time (Firebase SDK lazy-load + anonymous sign-in). Once saw 403s on create that went away on retry.
@@ -72,6 +78,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 - Online with 3+ real people and host takeover (shared layer has its own emulator tests).
 - Sounds never heard (no audio headless); real iPhone sound + feel unchecked. Online effects only reasoned (same view diff), not run in two browsers.
 - Design pass: online lobby, offer/pick overlays and draft piles not re-screenshotted (CSS shared with checked screens).
+- Real-table look: draft piles (2021 deck, 2-3p), teams, 5-6 players and online room not screenshotted; deal flight frames not captured (headless too fast/slow), only "no leftover ghosts, no errors". The required reviewer agent could not run (subagent limit hit twice); self-reviewed instead. Real card layout details beyond "engraved border, per-type colour, name + value" not found online.
 
 ## Rejected / parked
 - ~~Card-counting overlay~~ duplicate of unseen grid. ~~Bluff model~~ no human data. ~~Newest-printing deck~~ values unknown. See `docs/ideas.md`.
