@@ -275,7 +275,8 @@
     if (!v) { fxPrev = null; return renderLobby(); }
     var cues = fxCues(v);
     if (FX) SF.perform(cues, FX, fxUI, 'pre'); // cards fly from where they were, before the redraw
-    renderStatus(v); renderOpps(v); renderPiles(v); renderStack(v); renderHand(v); renderBar(v); renderMsg(v); renderSide(v); renderOverlay(v);
+    // opponents last among the table parts: their seats get whatever height the rest leaves
+    renderStatus(v); renderPiles(v); renderStack(v); renderHand(v); renderBar(v); renderMsg(v); renderOpps(v); renderSide(v); renderOverlay(v);
     dealOpps(v);
     if (FX) SF.perform(cues, FX, fxUI, 'post');
   }
@@ -354,12 +355,33 @@
 
   function oppOrder(v) { var o = []; for (var i = 1; i < v.cfg.players; i++) o.push((me + i) % v.cfg.players); return o; }
 
+  // the biggest card width whose criss-cross tower (up to 6 sets) fits a W x H box
+  function towerW(W, H, n, cap) {
+    var k = 1.64 + Math.min(5, Math.max(0, n - 1)) / 30;
+    return Math.max(18, Math.min(cap, Math.floor((Math.min(W, H) - 6) / k)));
+  }
+  var oppW = 0;
   function renderOpps(v) {
+    var wide = window.innerWidth >= 900, order = oppOrder(v);
+    // many seats (or narrow ones): name on its own line above the money so it stays readable
+    $('opps').classList.toggle('tight', ($('opps').clientWidth || window.innerWidth) / order.length < (wide ? 250 : 110));
+    oppsHTML(v, oppW || 26);
+    // stacks as big as the seat allows: measure the free box under the name and redraw if it changed
+    var seat = $('opps').querySelector('.opp'), most = 1;
+    v.stacks.forEach(function (k, s) { if (s !== me) most = Math.max(most, k.length); });
+    if (seat && seat.clientHeight > 40) {
+      var free = seat.clientHeight - seat.querySelector('.ohand').offsetHeight - seat.querySelector('.nm').offsetHeight - 8;
+      var w = towerW(seat.clientWidth - 4, free, most, wide ? (window.innerHeight < 820 ? 76 : 92) : 64);
+      if (w !== oppW) { oppW = w; oppsHTML(v, w); }
+    }
+    // each seat hugs its tower, so the free wood is at the far edge of the table, not between the cards
+    var need = Math.ceil(oppW * (1.64 + Math.min(5, most - 1) / 30) + 10);
+    $('opps').querySelectorAll('.opp .stk').forEach(function (k) { k.style.flex = '0 0 ' + need + 'px'; });
+  }
+  function oppsHTML(v, w) {
     var cands = candidates(v), html = '';
-    var wide = window.innerWidth >= 900, w = wide ? (window.innerHeight < 820 ? 36 : 46) : (window.innerHeight < 460 ? 20 : 26), bw = wide ? (window.innerHeight < 820 ? 22 : 28) : 15;
+    var wide = window.innerWidth >= 900, bw = wide ? (window.innerHeight < 820 ? 22 : 28) : 15;
     var order = oppOrder(v);
-    // many seats on a narrow phone: name on its own line above the money so it stays readable
-    $('opps').classList.toggle('tight', !wide && ($('opps').clientWidth || window.innerWidth) / order.length < 110);
     order.forEach(function (s, oi) {
       var tgt = cands.filter(function (a) { return (a.t === 'challenge' || a.t === 'swap' || a.t === 'move') && a.target === s; });
       var isTurn = E.toAct(v) === s && v.phase !== 'roundEnd' && v.phase !== 'gameOver';
@@ -374,8 +396,8 @@
       var top = E.topSet(v, s), t = order.length > 1 ? oi / (order.length - 1) * 2 - 1 : 0, hn = O.handLen(v, s);
       html += '<div class="opp' + (isTurn ? ' turn' : '') + (tgt.length ? ' target' : '') + (mate ? ' mate' : '') + '" data-seat="' + s + '" style="--oy:' + Math.round(t * t * 26) + 'px;--or:' + (-t * 7).toFixed(1) + 'deg">' +
         '<div class="ohand" aria-label="' + hn + ' cards in hand">' + backFanHTML(hn, bw) + '</div>' +
-        '<div class="stk">' + stackHTML(v, s, w, false) + '</div>' +
-        '<div class="nm"><span class="tbl-plate">' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span><b class="tv">' + money(E.stackValue(v, s)) + '</b>' + (top ? '<span class="otop">top ' + money(E.setValue(v, top)) + '</span>' : '') + '</div>' + chip + '</div>';
+        '<div class="stk">' + stackHTML(v, s, w, false) + chip + '</div>' +
+        '<div class="nm"><span class="tbl-plate">' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span><span class="vals"><b class="tv">' + money(E.stackValue(v, s)) + '</b>' + (top ? '<span class="otop">top ' + money(E.setValue(v, top)) + '</span>' : '') + '</span></div></div>';
     });
     $('opps').innerHTML = html;
   }
@@ -413,10 +435,14 @@
         (v.discard.length ? '<span class="tbl-badge">' + v.discard.length + '</span>' : '') + '</div></div>';
     }
     $('piles').innerHTML = html;
+    $('piles').parentNode.classList.toggle('drafting', !!v.piles);
   }
 
   function renderStack(v) {
     var k = v.stacks[me], w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 44 : 56) : 36;
+    if (!$('mystack').querySelector('.pilebox')) $('mystack').innerHTML = '<div class="pilebox"></div><div class="info"></div>';
+    var pb = $('mystack').querySelector('.pilebox'); // as big as the spot in front of you allows
+    if (pb && pb.clientHeight > 10) w = towerW(pb.clientWidth, pb.clientHeight, k.length, window.innerWidth >= 900 ? 96 : 56);
     var fresh = (lastSeen.sets[me] || 0) < k.length; lastSeen.sets = v.stacks.map(function (x) { return x.length; });
     var info = '<div class="big">' + money(E.stackValue(v, me)) + '</div><div>' + k.length + ' set' + (k.length === 1 ? '' : 's') + ' this round</div>';
     if (S.odds && k.length && !covered(v)) {
@@ -621,8 +647,24 @@
     // the panel pops in only when it first appears; later updates don't move it
     var kind = html ? v.phase + (mode ? mode.t : '') : '';
     if (html && ov.dataset.kind !== kind) html = html.replace('<div class="panel', '<div class="panel pop');
+    if (ov.dataset.kind !== kind) ov.dataset.compact = '';
     ov.dataset.kind = kind;
     ov.innerHTML = html; ov.hidden = !html;
+    fitOverlay(ov);
+  }
+  // a challenge or draft offer sits on the table above your hand so you can still see your cards;
+  // if it can't fit there even in its compact form, it may cover the hand
+  function fitOverlay(ov) {
+    var k = ov.dataset.kind || '', p = ov.querySelector('.panel');
+    ov.style.paddingBottom = '';
+    if (!p || (k.indexOf('battle') !== 0 && k.indexOf('offer') !== 0)) return;
+    var hand = $('hand').getBoundingClientRect(), o = ov.getBoundingClientRect();
+    if (!hand.height) return;
+    var room = o.bottom - hand.top + 4;
+    if (ov.dataset.compact === '1') p.classList.add('compact');
+    ov.style.paddingBottom = room + 'px';
+    if (p.scrollHeight > p.clientHeight + 1 && !p.classList.contains('compact')) { p.classList.add('compact'); ov.dataset.compact = '1'; }
+    if (p.scrollHeight > p.clientHeight + 1) ov.style.paddingBottom = '';
   }
 
   function roundPanel(v) {

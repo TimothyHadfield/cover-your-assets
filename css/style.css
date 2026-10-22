@@ -503,3 +503,73 @@ select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg x
 /* pass screen on a shared phone: the next person's cards wait face down */
 .hand .handback { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); }
 .hand .handback .card { position: absolute; left: 0; bottom: 0; transform-origin: 50% 100%; }
+
+/* ---------- visibility pass (2026-10-21): the table fills the screen, stacks as big as their seats ---------- */
+/* opponents' seats take all the height the rest of the table leaves; js sizes the towers to fit (towerW) */
+.opps { flex: 1 1 auto; min-height: 104px; align-items: stretch; }
+.opp, .opps.tight .opp { height: auto; min-height: 0; }
+.center { flex: 0 0 auto; }
+.opp .stk { min-height: 30px; }
+.opp .stk .chip, .opps.tight .opp .stk .chip { bottom: 2px; }
+.opp .nm .vals { display: inline-flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 0 5px; min-width: 0; }
+/* the top set's value (what a challenge wins) is readable on every screen */
+.opp .otop { display: inline; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.opps.tight .opp .nm .tv { font-size: 12px; }
+@media (max-width: 899px) {
+  .opp .nm { flex-direction: column; gap: 1px; width: 100%; }
+  .opp .nm .tbl-plate { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .opp .nm .vals { line-height: 15px; }
+  /* phone upright: the message sits beside the deck and discard, not in a row of its own */
+  .center:not(.drafting) { flex-direction: row; justify-content: center; gap: 14px; padding: 2px 0; }
+  .center:not(.drafting) .msg { flex: 0 1 190px; min-height: 0; }
+  .center:not(.drafting) .piles { flex: 0 0 auto; }
+  .mystack .pilebox { width: 96px; height: 100%; }
+}
+/* challenges and draft offers in a short space: the set and the fight side by side, smaller cards */
+.panel.mat.compact { display: grid; grid-template-columns: auto auto; justify-content: center; column-gap: 16px; padding: 10px 12px; }
+.panel.mat.compact > :not(.fight) { grid-column: 1 / -1; }
+.panel.mat.compact h2 { font-size: 16px; margin-bottom: 2px; }
+.panel.mat.compact .sub { margin-bottom: 4px; }
+.panel.mat.compact .fight { min-height: 0; margin: 2px 0; }
+.panel.mat.compact .fight .card, .panel.mat.compact .fight .slot0 { width: 42px; --card-w: 42px; }
+.panel.mat.compact .row { margin-top: 6px; }
+.panel.mat.compact .fight .side-l, .panel.mat.compact .fight .side-r { flex-wrap: nowrap; gap: 0; }
+.panel.mat.compact .fight .card + .card { margin-left: -18px; }
+.panel.mat.compact .odds-line { margin: 2px 0; font-size: 14px; }
+/* laptop: your stack sits beside your hand (front of you), so the far seats get that height */
+@media (min-width: 900px) {
+  .opp { height: auto; }
+  .opp .nm { flex-wrap: nowrap; }
+  .opps.tight .opp .nm { flex-direction: column; gap: 2px; width: 100%; }
+  .opps.tight .opp .nm .tbl-plate { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .opps.tight .opp .nm .tv { font-size: 15px; }
+  .opp .otop { font-size: 13px; }
+  .me { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "stack hand" "stack bar"; column-gap: 18px; max-width: 1040px; }
+  .mystack { grid-area: stack; flex-direction: column; justify-content: flex-end; align-items: center; height: auto; gap: 4px; padding: 0 6px 6px; }
+  .mystack .pilebox { width: 190px; height: 160px; margin: 0; }
+  .mystack .info { text-align: center; }
+  .hand { grid-area: hand; }
+  .bar { grid-area: bar; }
+}
+@media (min-width: 900px) and (max-height: 819px) {
+  .mystack .pilebox { width: 170px; height: 128px; }
+  .mystack .info .big { font-size: 26px; }
+}
+/* phone turned sideways: the buttons sit beside the hand so the seats get the height */
+@media (max-height: 460px) and (max-width: 899px) and (orientation: landscape) {
+  .board { grid-template-rows: minmax(0, 1fr) auto auto; grid-template-areas: "opps opps" "stack center" "hand bar"; }
+  .opps { min-height: 0; }
+  .opp .nm, .opps.tight .opp .nm { gap: 0; }
+  .hand { height: 104px; }
+  .center:not(.drafting) .msg { flex: 1 1 auto; }
+  .mystack .pilebox { width: 84px; }
+  .bar { flex-wrap: wrap; height: auto; align-content: center; }
+}
+.opp { justify-content: flex-end; }
+/* phone upright with room: deck and discard a size up so the discard's value reads */
+@media (max-width: 899px) and (min-height: 641px) and (orientation: portrait) {
+  .center:not(.drafting) .pile, .center:not(.drafting) .pile .slot { width: 76px; }
+  .center:not(.drafting) .pile .slot { --card-w: 76px; }
+}
+/* 6 players on the smallest phones: long names still fit their seat */
+@media (max-width: 359px) { .opps.tight .opp .nm .tbl-plate { font-size: 10px; padding: 1px 3px; letter-spacing: -.01em; } }
