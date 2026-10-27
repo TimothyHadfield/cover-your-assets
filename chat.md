@@ -30,3 +30,9 @@
 - **Built:** read-only reviewer ran; fixed clipped 6-player names, off-centre empty spot, ×N badge over the art. Then 48 scenarios, 12 failed on live, all fixed: pass-and-play cover (face-down hand, no odds leak, survives reload), two tabs sync, tie explanation (`E.extraRound`), duplicate names numbered, tip closes on Back, $1.005M format, tracker double End round and deck-switch NaN.
 - **Verified:** `tests/edge.test.js` (28 checks; failed first on `extraRound`), full `npm test` green, `ui-edge.mjs` U1–U35 in WebKit: 12 fail on live before, all pass local after; draft/teams/6p/online lobby screenshotted at phone, laptop, 320, landscape (no errors, no overflow).
 - **Open (Tim's call):** reviewer's layout ideas (challenge panel over the hand on phone, app-like count badges, score-pad style, laptop empty band); wording of the tie line, "Ann 2", tracker toast.
+
+## 2026-10-21 → 10-27 — visibility pass
+- **Asked (Tim):** "the cards or board layout is too small to easily see what's going on ... Fix this so the view of what's happening and where everything is is very clear."
+- **Built:** opponents' seats fill the spare height and towers are sized to fit (`towerW`, never smaller than the old size); "top $X" on every screen; laptop puts your stack beside your hand; phone puts the message beside the piles and enlarges the discard; challenge/draft panel sits above the hand (compact when short); 6-player names fit at 320 px.
+- **Verified:** 60 seeded shots (12 states x 393/320/659-land/1280/1440, WebKit): gates `check.mjs` 107 fails before → 0, `nreg.mjs` (no card smaller than before) 28 fails on the unfinished build → 0. Steal taps + challenge buttons by script in WebKit and Chromium. `npm test` green. One reviewer agent; its "smaller than before" items fixed.
+- **Open:** see NOT verified (6-player cards at 320/landscape, panel over seats).

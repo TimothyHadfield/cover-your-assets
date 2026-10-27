@@ -572,4 +572,7 @@ select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg x
   .center:not(.drafting) .pile .slot { --card-w: 76px; }
 }
 /* 6 players on the smallest phones: long names still fit their seat */
-@media (max-width: 359px) { .opps.tight .opp .nm .tbl-plate { font-size: 10px; padding: 1px 3px; letter-spacing: -.01em; } }
+@media (max-width: 359px) {
+  .opps.tight .opp { padding-left: 0; padding-right: 0; }
+  .opps.tight .opp .nm .tbl-plate { font-size: 10px; padding: 1px 2px; letter-spacing: -.02em; }
+}

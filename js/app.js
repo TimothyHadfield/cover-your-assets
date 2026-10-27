@@ -356,9 +356,10 @@
   function oppOrder(v) { var o = []; for (var i = 1; i < v.cfg.players; i++) o.push((me + i) % v.cfg.players); return o; }
 
   // the biggest card width whose criss-cross tower (up to 6 sets) fits a W x H box
-  function towerW(W, H, n, cap) {
+  // floor = the old fixed size, so a cramped spot never draws a stack smaller than it used to
+  function towerW(W, H, n, cap, floor) {
     var k = 1.64 + Math.min(5, Math.max(0, n - 1)) / 30;
-    return Math.max(18, Math.min(cap, Math.floor((Math.min(W, H) - 6) / k)));
+    return Math.max(floor || 18, Math.min(cap, Math.floor((Math.min(W, H) - 6) / k)));
   }
   var oppW = 0;
   function renderOpps(v) {
@@ -371,7 +372,8 @@
     v.stacks.forEach(function (k, s) { if (s !== me) most = Math.max(most, k.length); });
     if (seat && seat.clientHeight > 40) {
       var free = seat.clientHeight - seat.querySelector('.ohand').offsetHeight - seat.querySelector('.nm').offsetHeight - 8;
-      var w = towerW(seat.clientWidth - 4, free, most, wide ? (window.innerHeight < 820 ? 76 : 92) : 64);
+      var w = towerW(seat.clientWidth - 4, free, most, wide ? (window.innerHeight < 820 ? 76 : 92) : 64,
+        wide ? (window.innerHeight < 820 ? 36 : 46) : (window.innerHeight < 460 ? 20 : 26));
       if (w !== oppW) { oppW = w; oppsHTML(v, w); }
     }
     // each seat hugs its tower, so the free wood is at the far edge of the table, not between the cards
@@ -442,7 +444,7 @@
     var k = v.stacks[me], w = window.innerWidth >= 900 ? (window.innerHeight < 820 ? 44 : 56) : 36;
     if (!$('mystack').querySelector('.pilebox')) $('mystack').innerHTML = '<div class="pilebox"></div><div class="info"></div>';
     var pb = $('mystack').querySelector('.pilebox'); // as big as the spot in front of you allows
-    if (pb && pb.clientHeight > 10) w = towerW(pb.clientWidth, pb.clientHeight, k.length, window.innerWidth >= 900 ? 96 : 56);
+    if (pb && pb.clientHeight > 10) w = towerW(pb.clientWidth, pb.clientHeight, k.length, window.innerWidth >= 900 ? 96 : 56, w);
     var fresh = (lastSeen.sets[me] || 0) < k.length; lastSeen.sets = v.stacks.map(function (x) { return x.length; });
     var info = '<div class="big">' + money(E.stackValue(v, me)) + '</div><div>' + k.length + ' set' + (k.length === 1 ? '' : 's') + ' this round</div>';
     if (S.odds && k.length && !covered(v)) {

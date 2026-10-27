@@ -1,7 +1,7 @@
 # Cover Your Assets — progress
 
 ## START HERE
-Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-20 (edge pass: weird scenarios).
+Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-27 (visibility pass).
 
 ## Goal right now
 Phase-2 games project: exact rules, play vs computers or online players, hint, odds, real-table tracker, data lab, original art. Built and live; waiting on Tim's feedback.
@@ -19,6 +19,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 | Art: original SVG faces, back, icons | Done |
 | Visual design pass (2026-10-20) | Done: bigger stacks/piles, turn glow on your area, labelled challenge lanes, 40px taps, compact Table rows, 2-column laptop Settings, fits 1280x720 |
 | Sounds, celebrations, animations (2026-10-20) | Done: `js/fx.js` (copy of `_fx/fx.js`, never edit) + `js/sfx.js` (event diff → cues) + Settings "Sound & effects"; `tests/fx.test.js` |
+| Visibility pass (2026-10-27) | Done: opponents' seats take all spare height and `towerW()` (js/app.js) sizes each tower to its seat; "top $X" (what a challenge wins) shown on every screen at 12px+; laptop: your stack beside your hand; phone: message beside deck/discard, bigger discard (76px); challenge/draft panel sits above your hand (compact form when short). Gates: scratchpad `vis/cover-your-assets/check.mjs` (107 fails on old build, 0 now) |
 | Real-table look (2026-10-20, commit 2ebe5e5) | Done: Play tab is a wood kitchen table (`css/table.css` + `js/table.js` = byte copies of `_table`, never edit). Poker-ratio cards (63/88) with engraved per-asset border colours (`FRAME` in `js/art.js`); stacks = criss-cross towers of the last 6 sets (seeded tilt); opponents = name plate + fanned backs (real hand size) + tower, outer seats lowered/turned on laptop; draw pile thins (stackShadow .15/card); discard = last 4 cards askew; hand = fan (`TABLE.fanLayout`), card size capped by the row height; draws fly face-down from the deck then turn up; challenge panel on a wood mat; round totals on a paper score pad; landscape phone and SE-size layouts. fx.js re-copied at 1.0.3 (`data-fxspeed`; game Speed untouched, checked) |
 
 ## Event → sound map (js/sfx.js; others' moves at 0.8 volume)
@@ -70,7 +71,10 @@ Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked
 
 - (2026-10-20) "I've noticed the games often have good user interfaces but could be improved especially when a scenario happens that the game might've not really thought about or whatnot. Could you focus on making each game perfect especially in scenarios that the game doesn't expect or are a little weird."
 
+- (2026-10-21) "for a lot of the games the cards or board layout is too small to easily see what's going on ... Fix this so the view of what's happening and where everything is is very clear. Consider parts of the board that are dense in what's happening and if the user can reasonably see it."
+
 ## Traps
+- Opponent seats are sized AFTER the rest of the table renders (`renderOpps` runs last in `render()`, measures the seat, redraws if `towerW` changes). Keep that order.
 - Playwright `click()` waits for animations, so computers move meanwhile; for timing tests click in-page (`el.click()`).
 - Pass-and-play (2+ people on one device): the "I'm X" cover shows at load and on reload; tests must click it first.
 - `.empty-stack.tbl-spot`: `inset:auto` must come before `left/top` or it cancels them.
@@ -102,6 +106,8 @@ Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked
 - Design pass: online lobby, offer/pick overlays and draft piles not re-screenshotted (CSS shared with checked screens).
 - Edge pass: draft piles, teams 4/6, 6 players and online lobby + table now screenshotted (phone, localhost). Table-look reviewer ran; its layout ideas (challenge panel covering the hand on phone, app-like count badges, score-pad style, laptop empty band) left for Tim. Two-tab sync tested only in one headless browser context.
 - Real-table look (old note): deal flight frames not captured; deal flight frames not captured (headless too fast/slow), only "no leftover ghosts, no errors". The required reviewer agent could not run (subagent limit hit twice); self-reviewed instead. Real card layout details beyond "engraved border, per-type colour, name + value" not found online.
+
+- Visibility pass: 6-player opponents' cards on 320 px and sideways phones stay ~24-26 px (the "top $X" label carries the value); the challenge panel still covers the seats (phone, laptop) and ~30% of the hand on a sideways phone. Steal taps checked by script (WebKit + Chromium, 393/320/1280), not on a real iPhone.
 
 ## Rejected / parked
 - ~~Card-counting overlay~~ duplicate of unseen grid. ~~Bluff model~~ no human data. ~~Newest-printing deck~~ values unknown. See `docs/ideas.md`.
