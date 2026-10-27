@@ -30,7 +30,7 @@ OnlineHost.prototype.stop = function () {};
 
 async function open() {
   if (room) return room;
-  const { createOnline } = await import("./online.js");
+  const { createOnline } = await import("./online.js?v=a3d0418b");
   room = createOnline({ game, gameId: game.id, botDelayMs: 900 });
   host = new OnlineHost(room);
   room.on("change", (snap) => {
