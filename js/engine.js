@@ -35,19 +35,27 @@
     if (c.players > 3) c.draft = false;
     if (!(c.players === 4 || c.players === 6)) c.teams = false;
     if (c.draft && c.teams) c.teams = false;
-    if (c.advanced) c.handSize = 6;
+    // the rulebook's advanced rules are optional one by one: advOff lists the ones left out
+    c.advOff = ADV_KEYS.filter(function (k) { return (c.advOff || []).indexOf(k) >= 0; });
+    if (c.advOff.length === ADV_KEYS.length) c.advanced = false;
+    if (!c.advanced) c.advOff = [];
+    if (advOn(c, 'hand')) c.handSize = 6;
     else if (c.draft && c.players === 2) c.handSize = 6;
     else if (c.edition === 'classic') c.handSize = c.players <= 3 ? 5 : 4;
     else c.handSize = 5;
-    c.maxActions = c.advanced ? 2 : 1;
+    c.maxActions = advOn(c, 'two') ? 2 : 1;
     return c;
   }
+  // hand: 6 cards · two: up to 2 actions (discard first = refill at once) · improve · cards: Swap, Move, Penny Jar · second: 2nd set challengeable
+  var ADV_KEYS = ['hand', 'two', 'improve', 'cards', 'second'];
+  function advOn(cfg, k) { return !!cfg.advanced && !(cfg.advOff && cfg.advOff.indexOf(k) >= 0); }
+  function adv(st, k) { return advOn(st.cfg, k); }
 
   function newGame(cfg, seed) {
     cfg = normalizeCfg(cfg);
     var st = {
       cfg: cfg, rng: (seed == null ? (Date.now() & 0x7fffffff) : seed) | 0,
-      cards: R.buildDeck(cfg.edition, { advanced: cfg.advanced, players: cfg.players, draft: cfg.draft }),
+      cards: R.buildDeck(cfg.edition, { advanced: advOn(cfg, 'cards'), players: cfg.players, draft: cfg.draft }),
       round: 0, dealer: cfg.players - 2, totals: [], roundScores: [], roundWins: [], history: [],
       team: [], log: [], winner: null, seq: 0
     };
@@ -70,7 +78,7 @@
       st.piles = [];
       var np = 3;
       for (var p = 0; p < np; p++) st.piles.push(deck.splice(0, 10));
-      if (cfg.advanced) { // action cards revealed at setup go face down into the middle
+      if (advOn(cfg, 'cards')) { // action cards revealed at setup go face down into the middle
         for (p = 0; p < np; p++) fixSetupTop(st, st.piles[p]);
       }
     }
@@ -119,7 +127,7 @@
   function canChallengeAt(st, att, tgt, depth) {
     if (tgt === att || sameTeam(st, att, tgt)) return false;
     if (st.stacks[att].length === 0) return false; // must own a set first
-    if (depth > 0 && !st.cfg.advanced) return false;
+    if (depth > 0 && !adv(st, 'second')) return false;
     if (st.stacks[tgt].length < depth + 2) return false; // the bottom (first) set is safe
     if (st.lockout.indexOf(tgt) >= 0) return false;
     return true;
@@ -152,11 +160,11 @@
         openers(st, h, set.type, depth ? 2 : 1).forEach(function (cs) { out.push({ t: 'challenge', target: tg, depth: depth, cards: cs }); });
       }
       if (st.cfg.advanced) {
-        var top = topSet(st, s);
+        var top = topSet(st, s), canImp = adv(st, 'improve');
         seen = {};
         h.forEach(function (x) {
           var c = st.cards[x];
-          if (top && c.kind === 'asset' && c.type === top.type && !seen.imp) { seen.imp = 1; out.push({ t: 'improve', card: x }); }
+          if (canImp && top && c.kind === 'asset' && c.type === top.type && !seen.imp) { seen.imp = 1; out.push({ t: 'improve', card: x }); }
           if (c.type === 'swap' && !seen.swap && top) {
             seen.swap = 1;
             for (var o = 0; o < st.cfg.players; o++) if (o !== s && st.stacks[o].length) out.push({ t: 'swap', card: x, target: o });
@@ -312,7 +320,7 @@
     } else if (a.t === 'discard') {
       removeFrom(h, a.card); st.discard.push(a.card);
       st.log.push({ s: s, m: 'discard', cards: [a.card] });
-      if (st.cfg.advanced && st.acts === 1) refill(st, s);
+      if (adv(st, 'two') && st.acts === 1) refill(st, s);
     } else if (a.t === 'improve') {
       removeFrom(h, a.card); topSet(st, s).cards.push(a.card);
       st.log.push({ s: s, m: 'improve', type: topSet(st, s).type, cards: [a.card] });
@@ -412,7 +420,7 @@
   function afterDraft(st) {
     var of = st.offer; st.offer = null; st.phase = 'turn';
     // flip: the next card of each used pile is now the top; advanced: action cards take effect at once
-    if (st.cfg.advanced) { if (resolveRevealed(st, of.piles.slice())) return; }
+    if (adv(st, 'cards')) { if (resolveRevealed(st, of.piles.slice())) return; }
     afterAction(st);
   }
 
@@ -542,7 +550,7 @@
   var api = {
     newGame: newGame, apply: apply, legal: legal, view: view, toAct: toAct, normalizeCfg: normalizeCfg,
     scores: scores, stackValue: stackValue, setValue: setValue, topSet: topSet, pairOK: pairOK, matches: matches,
-    canChallengeAt: canChallengeAt, openers: openers, pilesFor: pilesFor, units: units, clone: clone, isLegal: isLegal, extraRound: extraRound
+    canChallengeAt: canChallengeAt, openers: openers, pilesFor: pilesFor, units: units, clone: clone, isLegal: isLegal, extraRound: extraRound, adv: adv, advOn: advOn, ADV_KEYS: ADV_KEYS
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.CYAEngine = api;
 })(this);

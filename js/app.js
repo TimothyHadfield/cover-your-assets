@@ -20,9 +20,10 @@
   if (!CC) CO = null;
 
   // ---------- settings ----------
-  var DEF = { players: 4, edition: 'classic', advanced: false, draft: false, teams: false, format: 'million', level: 'medium',
+  var DEF = { players: 4, edition: 'classic', advanced: false, advOff: [], draft: false, teams: false, format: 'million', level: 'medium',
     seats: null, odds: true, coach: true, speed: 'normal' };
   var S = Object.assign({}, DEF, LS.get('cya.settings', {}));
+  S.advOff = Array.isArray(S.advOff) ? S.advOff.slice() : [];
   function seatsFor(n) {
     var out = [], old = S.seats || [];
     for (var i = 0; i < n; i++) {
@@ -76,7 +77,7 @@
     if (online()) { var h = host; host = null; window.CYANet.leave(); if (h) h.stop(); }
     recordGame(); // a game left after your first move counts as a loss
     var daily = kind === 'daily' && PF ? dailyToday() : null, tut = kind === 'tutorial' && !!CC;
-    var cfg = daily ? CP.DAILY.cfg : tut ? CC.CFG : { players: S.players, edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format };
+    var cfg = daily ? CP.DAILY.cfg : tut ? CC.CFG : { players: S.players, edition: S.edition, advanced: S.advanced, advOff: S.advOff.slice(), draft: S.draft, teams: S.teams, format: S.format };
     var st = E.newGame(cfg, daily ? daily.seed : tut ? CC.SEED : undefined);
     startHost(st, daily || tut ? fixedSeats(cfg.players, daily ? CP.DAILY.level : CC.LEVEL) : null);
     G = { helped: false, daily: daily ? daily.day : null, tutorial: tut, recorded: false, moved: false };
@@ -407,7 +408,7 @@
   function netBusy(on) { document.querySelectorAll('[data-net="create"],[data-net="join"]').forEach(function (b) { b.disabled = on; }); }
   function netCreate() {
     var seats = S.seats.slice(0, S.players).map(function (s, i) { return i === 0 ? 'human' : s.kind === 'human' ? 'empty' : { kind: 'computer', name: s.name || NAMES[i] }; });
-    var options = { edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format,
+    var options = { edition: S.edition, advanced: S.advanced, advOff: S.advOff.slice(), draft: S.draft, teams: S.teams, format: S.format,
       levels: S.seats.slice(0, S.players).map(function (s) { return s.level || S.level; }) };
     netBusy(true); $('netNote').textContent = 'Opening a room…';
     window.CYANet.create(myName(), seats, options).then(function (r) { netBusy(false); if (!r.ok) $('netNote').textContent = r.message || 'Could not open a room.'; });
@@ -914,6 +915,8 @@
   document.querySelector('.hubtab').innerHTML = '<span>Play</span>';
 
   // ---------- settings tab ----------
+  // the rulebook's advanced rules, each optional ("try adding one or all of these")
+  var ADV_ROWS = [['hand', '6-card hand'], ['two', '2 actions a turn'], ['improve', 'Improve a set'], ['cards', 'Swap, Move, Penny Jar'], ['second', 'Steal the 2nd set']];
   function sw(key, on, dis) { return '<button class="switch' + (on ? ' on' : '') + (dis ? ' off-dis' : '') + '" data-sw="' + key + '" aria-label="' + key + '"></button>'; }
   function renderSettings() {
     var e21 = S.edition === 'e2021';
@@ -928,6 +931,9 @@
     }).join('') + '</div>';
     html += row('Deck <button class="q" data-q="deck">?</button>', '<select data-set="edition"><option value="classic"' + (!e21 ? ' selected' : '') + '>Classic</option><option value="e2021"' + (e21 ? ' selected' : '') + '>New (2021+)</option></select>');
     html += row('Advanced rules <button class="q" data-q="adv">?</button>', sw('advanced', S.advanced, !e21));
+    if (e21 && S.advanced) html += '<div class="advpick">' + ADV_ROWS.map(function (r) {
+      return '<div class="setrow sub"><span class="lab2">' + r[1] + '</span><button class="switch' + (S.advOff.indexOf(r[0]) < 0 ? ' on' : '') + '" data-advk="' + r[0] + '" aria-label="' + r[1] + '"></button></div>';
+    }).join('') + '</div>';
     html += row('Draft piles (2-3 players) <button class="q" data-q="draft">?</button>', sw('draft', S.draft, !(e21 && S.players <= 3)));
     html += row('Teams (4 or 6) <button class="q" data-q="teams">?</button>', sw('teams', S.teams, !(S.players === 4 || S.players === 6) || S.draft));
     html += row('Game length', '<select data-set="format">' + [['million', 'First to $1M'], ['quick', 'One round'], ['three', 'Three rounds'], ['bestof2', 'First to 2 round wins']].map(function (o) {
@@ -965,18 +971,26 @@
   });
   document.addEventListener('click', function (ev) {
     var t = ev.target.closest('[data-sw]');
-    if (t) { S[t.dataset.sw] = !S[t.dataset.sw]; fixSettings(); saveSettings(); renderSettings(); if (host) render(); return; }
+    if (t) { S[t.dataset.sw] = !S[t.dataset.sw]; if (t.dataset.sw === 'advanced' && S.advanced) S.advOff = []; fixSettings(); saveSettings(); renderSettings(); if (host) render(); return; }
+    var ak = ev.target.closest('[data-advk]');
+    if (ak) {
+      var k = ak.dataset.advk, i = S.advOff.indexOf(k);
+      if (i >= 0) S.advOff.splice(i, 1); else S.advOff.push(k);
+      if (S.advOff.length >= ADV_ROWS.length) { S.advanced = false; S.advOff = []; } // all left out = advanced off
+      saveSettings(); renderSettings(); return;
+    }
     var n = ev.target.closest('[data-set-act="new"]');
     if (n) { newGame(); showTab('play'); }
   });
   function fixSettings() {
+    if (!Array.isArray(S.advOff)) S.advOff = [];
     if (S.edition !== 'e2021') { S.advanced = false; S.draft = false; }
     if (S.players > 3) S.draft = false;
     if (!(S.players === 4 || S.players === 6) || S.draft) S.teams = false;
   }
   Object.assign(TIPS, {
     deck: 'Classic: the 110-card deck sold 2011-2018 (10 kinds of assets). New: the 2021+ box with Speed Boat, 9 copies of most assets, and the advanced Swap, Move and Penny Jar cards.',
-    adv: 'From the 2021 box: hold 6 cards, take up to 2 actions a turn, add matching cards to your top set, challenge the 2nd set from the top with 2 cards, and use Swap, Move and Penny Jar.',
+    adv: 'From the 2021 box: hold 6 cards, take up to 2 actions a turn, add matching cards to your top set, challenge the 2nd set from the top with 2 cards, and use Swap, Move and Penny Jar. The rulebook says to add one or all of them, so each can be switched off below.',
     draft: 'The 2021 rules for 2 or 3 players: three face-up draft piles you can claim sets from. The player beside the pile may challenge for the set.',
     teams: 'House rule, not in the rulebook: partners sit across, can\'t steal from each other, and add their money together.',
     room: 'Opens an online room with the game settings above. Seats set to Person stay open for friends who join with the code; computer seats stay computers. Your phone runs the computers, so keep this page open.',
@@ -985,6 +999,13 @@
   });
 
   // ---------- rules tab ----------
+  // checked 2026-10-28 with youtube.com/oembed (200, titles match)
+  var VIDEOS = [
+    ['tPTmoPtDwnI', 'How to Play Cover Your Assets', "Grandpa Beck's Games (official)", '4 min'],
+    ['HCJ18IN23Ac', 'How to Play Cover Your Assets in 3 Minutes', 'The Dice Tower', '3 min'],
+    ['mjUpMTEpXew', '2 & 3 Player Rules, & Advanced Rules', 'Brimley Games', '5 min'],
+    ['UcAIo6mszUs', 'Tips and Tricks for Beginners', 'Taming Games', '11 min']
+  ];
   function renderRules() {
     var ed = S.edition;
     var cards = RL.EDITIONS[ed].cards.concat(ed === 'e2021' ? RL.EDITIONS[ed].advanced : []);
@@ -999,6 +1020,8 @@
       '<h2>Challenges</h2><ul><li>You need a set of your own first. A player\'s first set (the bottom one) is always safe.</li><li>The defender answers with a matching card or wild, then you, and so on. Whoever plays the last card wins the set and every card played.</li><li>After the fight, the challenger draws first, then the defender.</li></ul>' +
       '<h2>End of a round</h2><p>When the draw pile runs out, keep playing without drawing. Everyone must still pair, challenge or discard. When every hand is empty, add up each stack. Play more rounds until someone reaches $1,000,000; if two do, the higher total wins.</p>' +
       '<h2>Help, Undo and My stats</h2><ul><li><b>Hint</b> shows the move the Hard computer would make. <b>Undo</b> takes back your last move (against computers, within the round; not in the Daily game).</li><li>A game where you used either counts in My stats as "with help" and doesn\'t change your rating. Leaving a game after your first move counts as a loss.</li><li><b>Daily game</b>: the same deal for everyone that day, you against three Medium computers, first to $1,000,000.</li></ul>' +
+      '<h2>Advanced rules (New deck)</h2><p>Six cards in hand, up to two actions a turn, Improve (add a matching asset to your top set), Swap, Move and Penny Jar cards, and challenges on the 2nd set from the top. The rulebook says to add one or all of them: pick which in Settings.</p>' +
+      '<h2>Videos</h2><ul class="vids">' + VIDEOS.map(function (x) { return '<li><a href="https://www.youtube.com/watch?v=' + x[0] + '" target="_blank" rel="noopener">' + esc(x[1]) + '</a> <span>' + esc(x[2]) + ' · ' + x[3] + '</span></li>'; }).join('') + '</ul>' +
       '<h2>Cards in this deck (' + total + ')</h2><div class="cardlist">' + list + '</div>' +
       '<p style="color:var(--muted);font-size:12px;margin-top:14px">Rules written in our own words from the published rules; sources are listed in docs/rules-check.md on GitHub. All card art is original to this site.</p>';
   }

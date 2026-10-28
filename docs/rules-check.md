@@ -17,6 +17,7 @@ rules write-ups and reviews instead. Tests in `tests/engine.test.js` assert ever
 | S8 | [RulesPal rulebook summary (current edition)](https://rulespal.com/cover-your-assets/rulebook) | New-edition rules: deal 5, classic/quick/three-round/best-of formats, Advanced rules, Penny Jar, Swap, Move, 2- and 3-player draft rules |
 | S9 | [King Panda Games review](https://www.kingpandagames.com/cover-your-assets-review/) | 2021-edition card list (adds Speed Boat, 9 copies of six assets), Penny Jar $1K, advanced rules |
 | S10 | [The Tabletop Family](https://thetabletopfamily.com/cover-your-assets/) | 110 cards, assets $5K-$20K, Silver $25K, Gold $50K, deal 4 |
+| S11 | [Official 2021 rulebook PDF (Grandpa Beck's Games, 16 pages)](https://cdn.1j1ju.com/medias/55/96/c1-cover-your-assets-rulebook.pdf) | Read 2026-10-28. Advanced rules p.10: "try adding one or all of these optional rules" (6 cards, 2 actions, Improve / action cards, 2nd set challengeable); Penny Jar, Swap, Move p.11; 2p/3p draft p.12-15 |
 
 ## Classic deck (2011-2018 printings) - default
 | Card | Value | Copies | Checked |
@@ -78,6 +79,7 @@ Scooter, Sport Plane, Cabin) with the same copy pattern; per-card values are not
 | Advanced: 2nd set from top challengeable, opened with 2 cards (or a Penny Jar); then 1 card each | `openers(need=2)` | S8, S9 |
 | Penny Jar counts as 2 cards in a fight; answered by 2 cards or another Penny Jar | `needAfter` | S8, S9 |
 | Lost a challenge: can't challenge that player again this turn | `lockout` | S8 |
+| Advanced rules may be added one at a time ("one or all of these optional rules"); Settings switches each off: 6-card hand, 2 actions (with discard-first refill), Improve, Swap/Move/Penny Jar cards, 2nd-set steals | `cfg.advOff`, `E.adv(st, k)` | S11 p.10 |
 | Swap: trade top sets with anyone; Move: any stack's top to bottom or bottom to top; action cards leave play | `swap`/`move` | S8 |
 | 2-player draft: remove 8 Home, 2 Silver, 1 Gold; 3 face-up draft piles of 10; deal 6 | `buildDeck`, `startRound` | S8 |
 | Draft a Set: play a hand card matching draft-pile tops, collect the matching tops into one set; the opponent may challenge it | `draftActions`, `doOffer` | S8 |

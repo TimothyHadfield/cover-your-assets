@@ -190,6 +190,9 @@ main { flex: 1 1 auto; min-height: 0; position: relative; }
 .rules h2 { font-size: 16px; margin: 14px 0 6px; }
 .rules p, .rules li { color: #cfd3de; font-size: 14px; }
 .rules ul { padding-left: 18px; margin: 4px 0; }
+.rules .vids li { margin: 6px 0; }
+.rules .vids a { color: #8fb8ff; font-weight: 600; }
+.rules .vids span { color: var(--muted); font-size: 12px; }
 .cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 .cardlist .c { text-align: center; font-size: 12px; color: var(--muted); }
 .cardlist .c .card { width: 64px; margin: 0 auto 3px; }
@@ -204,6 +207,8 @@ main { flex: 1 1 auto; min-height: 0; position: relative; }
 .switch.on { background: var(--good); }
 .switch.on::after { transform: translateX(18px); }
 .switch.off-dis { opacity: .35; pointer-events: none; }
+/* Advanced rules picked one by one: indented, shorter rows under the Advanced switch */
+.setrow.sub { min-height: 40px; padding: 6px 0 6px 16px; font-size: 13px; color: var(--muted); }
 .seats { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .seat { display: flex; gap: 6px; align-items: center; }
 .seat input { flex: 1; min-width: 0; }

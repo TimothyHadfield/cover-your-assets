@@ -69,7 +69,7 @@
         var V = val(st, ids[0]) + val(st, ids[1]);
         var after = minus(hand, fromHand);
         var risk = exposure(st, seat, T, V, after, k.length + 1, un);
-        var cover = st.cfg.advanced ? topNow * 0.5 : topNow;
+        var cover = (E.adv ? E.adv(st, 'second') : st.cfg.advanced) ? topNow * 0.5 : topNow; // a covered set can still be taken from 2nd place
         s = V - risk - sumKeep(st, hand, fromHand) + cover;
         why = 'Banks $' + (V / 1000) + 'K' + (cover > 2000 ? ' and covers your top set' : '') + (risk > 3000 ? '; risk ~$' + Math.round(risk / 1000) + 'K' : '');
         return { s: s, why: why };
