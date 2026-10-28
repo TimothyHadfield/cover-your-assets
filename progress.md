@@ -1,7 +1,7 @@
 # Cover Your Assets — progress
 
 ## START HERE
-Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-27 (visibility pass).
+Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-27 (improvement pass, build 3).
 
 ## Goal right now
 Phase-2 games project: exact rules, play vs computers or online players, hint, odds, real-table tracker, data lab, original art. Built and live; waiting on Tim's feedback.
@@ -20,6 +20,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 | Visual design pass (2026-10-20) | Done: bigger stacks/piles, turn glow on your area, labelled challenge lanes, 40px taps, compact Table rows, 2-column laptop Settings, fits 1280x720 |
 | Sounds, celebrations, animations (2026-10-20) | Done: `js/fx.js` (copy of `_fx/fx.js`, never edit) + `js/sfx.js` (event diff → cues) + Settings "Sound & effects"; `tests/fx.test.js` |
 | Visibility pass (2026-10-27) | Done: opponents' seats take all spare height and `towerW()` (js/app.js) sizes each tower to its seat; "top $X" (what a challenge wins) shown on every screen at 12px+; laptop: your stack beside your hand; phone: message beside deck/discard, bigger discard (76px); challenge/draft panel sits above your hand (compact form when short). Gates: scratchpad `vis/cover-your-assets/check.mjs` (107 fails on old build, 0 now) |
+| Improvement pass (2026-10-27, build 3) | Done: faces on every name plate (`avatar()` in js/art.js, smile after a steal / frown when robbed; hidden at 6 players on phone), Undo vs computers (not in the Daily, not with 2+ humans), end-of-game summary + Review (game log), My stats via kits `js/profile.js` + `js/cyaprofile.js` (Elo easy 1200 / medium 1610 / hard 2230, 10 achievements, Daily = 3 Medium, classic, to $1M, same deal for all), guided first game (`js/coach.js` + `js/cyacoach.js`, seed 9, never counts), home-screen install + offline (`sw.js`, `js/pwa.js`, manifest, icons). Hint/Undo = unrated; quit after a move = loss; never-moved games record nothing. AI unchanged (ladder already holds: H 92% vs 3M, M 78% vs 3E). Tests: `tests/profile.test.js` (19), `tests/pwa-check.json` (18/18 WebKit) |
 | Real-table look (2026-10-20, commit 2ebe5e5) | Done: Play tab is a wood kitchen table (`css/table.css` + `js/table.js` = byte copies of `_table`, never edit). Poker-ratio cards (63/88) with engraved per-asset border colours (`FRAME` in `js/art.js`); stacks = criss-cross towers of the last 6 sets (seeded tilt); opponents = name plate + fanned backs (real hand size) + tower, outer seats lowered/turned on laptop; draw pile thins (stackShadow .15/card); discard = last 4 cards askew; hand = fan (`TABLE.fanLayout`), card size capped by the row height; draws fly face-down from the deck then turn up; challenge panel on a wood mat; round totals on a paper score pad; landscape phone and SE-size layouts. fx.js re-copied at 1.0.3 (`data-fxspeed`; game Speed untouched, checked) |
 
 ## Event → sound map (js/sfx.js; others' moves at 0.8 volume)
@@ -109,6 +110,8 @@ Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked
 - Real-table look (old note): deal flight frames not captured; deal flight frames not captured (headless too fast/slow), only "no leftover ghosts, no errors". The required reviewer agent could not run (subagent limit hit twice); self-reviewed instead. Real card layout details beyond "engraved border, per-type colour, name + value" not found online.
 
 - Visibility pass: 6-player opponents' cards on 320 px and sideways phones stay ~24-26 px (the "top $X" label carries the value); the challenge panel still covers the seats (phone, laptop) and ~30% of the hand on a sideways phone. Steal taps checked by script (WebKit + Chromium, 393/320/1280), not on a real iPhone.
+
+- Improvement pass: avatar faces' look, coach steps and install/offline only checked headless (WebKit 393/1280), not on a real iPhone. `.gitattributes` (shared) not updated with -text for the new kit files.
 
 ## Rejected / parked
 - ~~Card-counting overlay~~ duplicate of unseen grid. ~~Bluff model~~ no human data. ~~Newest-printing deck~~ values unknown. See `docs/ideas.md`.

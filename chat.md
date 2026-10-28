@@ -36,3 +36,9 @@
 - **Built:** opponents' seats fill the spare height and towers are sized to fit (`towerW`, never smaller than the old size); "top $X" on every screen; laptop puts your stack beside your hand; phone puts the message beside the piles and enlarges the discard; challenge/draft panel sits above the hand (compact when short); 6-player names fit at 320 px.
 - **Verified:** 60 seeded shots (12 states x 393/320/659-land/1280/1440, WebKit): gates `check.mjs` 107 fails before → 0, `nreg.mjs` (no card smaller than before) 28 fails on the unfinished build → 0. Steal taps + challenge buttons by script in WebKit and Chromium. `npm test` green. One reviewer agent; its "smaller than before" items fixed.
 - **Open:** see NOT verified (6-player cards at 320/landscape, panel over seats).
+
+## 2026-10-27 — improvement pass (build 3)
+- **Asked (Tim):** "start building every single improvement you can think of after your competitor analysis" / "I want to make our boardgames the best in every single metric we can."
+- **Built:** reacting faces on every seat, Undo vs computers, game-over summary + Review, My stats (Elo, 10 achievements, Daily game), guided first game, install + offline (kits profile 1.1.0, coach 1.0.0, pwa 1.2.0; fx.js re-copied). AI unchanged (ladder already holds).
+- **Verified:** `npm test` green (engine 92, edge 28, ai 4, lab 6, fx 25, profile 19, online 20); scratchpad `ui.mjs` (WebKit 393 + 1280) passes every flow and times out on the old build; visibility gates leave 2 fails (the deliberately long 6p test name, accepted); PWA check 18/18.
+- **Open (Tim's call):** achievement names, face designs, Daily setup, faces hidden at 6p on phone, button placement and wording.
