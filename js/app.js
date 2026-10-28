@@ -219,18 +219,19 @@
   function logText(st, e) {
     var n = function (s) { return '<b>' + esc(seatName(s)) + '</b>'; };
     var cs = function (ids) { return (ids || []).map(function (id) { return cardName(st, id); }).join(' + '); };
+    var poss = function (s) { return seatName(s) === 'You' ? 'your' : n(s) + "'s"; }; // never "You's"
     switch (e.m) {
       case 'pair': return n(e.s) + ' paired ' + cs(e.cards);
       case 'pairDiscard': return n(e.s) + ' took ' + cardName(st, e.cards[1]) + ' from the discard';
       case 'discard': return n(e.s) + ' discarded ' + cs(e.cards);
-      case 'challenge': return n(e.s) + ' challenged ' + (e.target === me && seatName(me) === 'You' ? 'your' : n(e.target) + "'s") + ' ' + tname(e.type) + ' with ' + cs(e.cards);
+      case 'challenge': return n(e.s) + ' challenged ' + poss(e.target) + ' ' + tname(e.type) + ' with ' + cs(e.cards);
       case 'answer': return n(e.s) + ' answered with ' + cs(e.cards);
       case 'fold': return n(e.s) + ' gave up';
       case 'held': return n(e.s) + ' kept the ' + tname(e.type) + ' set (' + money(e.value) + ')';
-      case 'stole': return n(e.s) + ' stole ' + n(e.from) + "'s " + tname(e.type) + ' set (' + money(e.value) + ')';
+      case 'stole': return n(e.s) + ' stole ' + poss(e.from) + ' ' + tname(e.type) + ' set (' + money(e.value) + ')';
       case 'improve': return n(e.s) + ' added ' + cs(e.cards) + ' to their top set';
       case 'swap': return n(e.s) + ' swapped top sets with ' + n(e.target);
-      case 'move': return n(e.s) + ' moved ' + n(e.target) + "'s " + (e.dir === 'down' ? 'top set to the bottom' : 'bottom set to the top');
+      case 'move': return n(e.s) + ' moved ' + poss(e.target) + ' ' + (e.dir === 'down' ? 'top set to the bottom' : 'bottom set to the top');
       case 'draft': return n(e.s) + ' drafted ' + tname(e.type) + ' (' + e.cards.length + ' cards)';
       case 'pass': return n(e.s) + ' let it go';
       case 'revealSwap': return 'A Swap flipped up: ' + n(e.seats[0]) + ' and ' + n(e.seats[1]) + ' traded top sets';
@@ -481,7 +482,7 @@
   function oppsHTML(v, w) {
     var cands = candidates(v), html = '';
     var wide = window.innerWidth >= 900, bw = wide ? (window.innerHeight < 820 ? 22 : 28) : 15;
-    var order = oppOrder(v);
+    var order = oppOrder(v), tight = !wide && $('opps').classList.contains('tight'); // many seats on a phone: the face moves beside the fanned backs
     order.forEach(function (s, oi) {
       var tgt = cands.filter(function (a) { return (a.t === 'challenge' || a.t === 'swap' || a.t === 'move') && a.target === s; });
       var isTurn = E.toAct(v) === s && v.phase !== 'roundEnd' && v.phase !== 'gameOver';
@@ -495,7 +496,7 @@
       // seats sit round the far side of the table: the outer ones a little lower and turned in
       var top = E.topSet(v, s), t = order.length > 1 ? oi / (order.length - 1) * 2 - 1 : 0, hn = O.handLen(v, s);
       html += '<div class="opp' + (isTurn ? ' turn' : '') + (tgt.length ? ' target' : '') + (mate ? ' mate' : '') + '" data-seat="' + s + '" style="--oy:' + Math.round(t * t * 26) + 'px;--or:' + (-t * 7).toFixed(1) + 'deg">' +
-        '<div class="ohand" aria-label="' + hn + ' cards in hand">' + backFanHTML(hn, bw) + '</div>' +
+        '<div class="ohand" aria-label="' + hn + ' cards in hand">' + (tight ? faceHTML(s) : '') + backFanHTML(hn, bw) + '</div>' +
         '<div class="stk">' + stackHTML(v, s, w, false) + chip + '</div>' +
         '<div class="nm"><span class="who">' + faceHTML(s) + '<span class="tbl-plate">' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span></span><span class="vals"><b class="tv">' + money(E.stackValue(v, s)) + '</b>' + (top ? '<span class="otop">top ' + money(E.setValue(v, top)) + '</span>' : '') + '</span></div></div>';
     });

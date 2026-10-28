@@ -42,3 +42,10 @@
 - **Built:** reacting faces on every seat, Undo vs computers, game-over summary + Review, My stats (Elo, 10 achievements, Daily game), guided first game, install + offline (kits profile 1.1.0, coach 1.0.0, pwa 1.2.0; fx.js re-copied). AI unchanged (ladder already holds).
 - **Verified:** `npm test` green (engine 92, edge 28, ai 4, lab 6, fx 25, profile 19, online 20); scratchpad `ui.mjs` (WebKit 393 + 1280) passes every flow and times out on the old build; visibility gates leave 2 fails (the deliberately long 6p test name, accepted); PWA check 18/18.
 - **Open (Tim's call):** achievement names, face designs, Daily setup, faces hidden at 6p on phone, button placement and wording.
+
+## 2026-10-28 — wave 3 ("just make the games better")
+- **Asked (Tim):** "Just make the games better" (layout, customization, practical settings, YouTube links, variations/house rules, iPhone layout).
+- **Built:** advanced rules pickable one by one (the official rulebook calls them "optional rules... one or all"), Videos section in Rules (4 links), faces back at 6 players on phone (beside the fanned backs), log grammar fix ("You's" → "your"), short Advanced section in Rules.
+- **Verified:** `tests/advpick.test.js` 15/15 (failed first on the old engine); full `npm test` green; ladder with each advanced rule alone holds (400 games each); pwa-check 18/18; WebKit shots 393/320/659x393/1280/1440, sub-switches clicked in the page and the new game's cfg read back (advOff, 104 cards, 6-card hand).
+- **Skipped:** web "house rules" (no real source), practical settings (no gap).
+- **Open (Tim's call):** sub-switch labels, face position at 6p on phone.
