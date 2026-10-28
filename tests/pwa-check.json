@@ -1,0 +1,10 @@
+{
+  "repo": "cover-your-assets",
+  "ready": "!!(window.CYAApp && window.CYAApp.host && document.querySelector('#hand .card'))",
+  "play": [
+    "(async () => { const w = ms => new Promise(r => setTimeout(r, ms)); if (window.COACH) COACH.closeOffer(); const A = window.CYAApp, E = window.CYAEngine; A.newGame(); for (let i = 0; i < 100 && !(A.host.state.phase === 'turn' && E.toAct(A.host.state) === A.me); i++) await w(100); window.__seq = A.host.state.seq; window.__log = A.host.state.log.length; const st = A.host.state; const L = E.legal(st).filter(a => a.t === 'pair' || a.t === 'discard'); const a = L.find(x => x.t === 'pair') || L[0]; (a.cards || [a.card]).forEach(id => document.querySelector('#hand .card[data-id=\"' + id + '\"]').click()); [...document.querySelectorAll('#bar [data-do]')].find(b => a.t === 'pair' ? /Pair/.test(b.textContent) : /Discard/.test(b.textContent)).click(); })()"
+  ],
+  "played": "(() => { const A = window.CYAApp, s = A.host.state; return s.log.length >= window.__log + 2 && s.phase === 'turn' && window.CYAEngine.toAct(s) === A.me; })()",
+  "safe": "document.querySelector('#tabs [data-tab=settings]').click()",
+  "debug": "JSON.stringify((() => { const s = window.CYAApp.host.state; return { phase: s.phase, log: s.log.length, before: window.__log, toAct: window.CYAEngine.toAct(s) }; })())"
+}

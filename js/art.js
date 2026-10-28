@@ -266,6 +266,37 @@
       '</svg>';
   }
 
+  // Player faces for the name plates (one per seat, drawn for this site). mood: '' | 'happy' | 'sad'.
+  var FOLK = [
+    { bg: '#3b6fd1', skin: '#f2c7a5', hair: '#3a2416', style: 'bun' },     // seat 0 (You, if shown)
+    { bg: '#c2475b', skin: '#f6d2b8', hair: '#d9a441', style: 'bob' },     // Ann
+    { bg: '#2f8a62', skin: '#c98d62', hair: '#1e1a17', style: 'short' },   // Ben
+    { bg: '#7a52c4', skin: '#f3cfae', hair: '#b4532a', style: 'long' },    // Cat
+    { bg: '#cf7a24', skin: '#8d5a3b', hair: '#121010', style: 'cap' },     // Dan
+    { bg: '#2a8c9c', skin: '#efc39d', hair: '#6b4a2c', style: 'pony' }     // Eve
+  ];
+  function avatar(seat, mood) {
+    var f = FOLK[((seat % FOLK.length) + FOLK.length) % FOLK.length], h = f.hair, back = '', front = '';
+    if (f.style === 'bob') { back = '<path d="M9 21 Q8 8 20 8 Q32 8 31 21 L31 27 Q27 25 27 18 Q20 15 13 18 Q13 25 9 27 Z" fill="' + h + '"/>'; }
+    if (f.style === 'short') { front = '<path d="M11 17 Q12 8 20 8.5 Q28 8 29 17 Q25 12.5 20 13 Q15 12.5 11 17 Z" fill="' + h + '"/>'; }
+    if (f.style === 'long') { back = '<path d="M9 19 Q8 7 20 7.5 Q32 7 31 19 L32 33 L26 33 L27 18 Q20 13 13 18 L14 33 L8 33 Z" fill="' + h + '"/>'; }
+    if (f.style === 'cap') { front = '<path d="M10.5 17 Q11 8 20 8 Q29 8 29.5 17 Z" fill="#203a6b"/><path d="M27 15.5 L35 17 Q34 18.6 28 18 Z" fill="#203a6b"/><circle cx="20" cy="8.6" r="1.1" fill="#f0b354"/>'; }
+    if (f.style === 'pony') { back = '<path d="M29 12 Q37 14 34 26 Q32 20 29 18 Z" fill="' + h + '"/>'; front = '<path d="M11 18 Q11 8 20 8 Q29 8 29 18 Q24 12 18 13.5 Q14 14 11 18 Z" fill="' + h + '"/>'; }
+    if (f.style === 'bun') { back = '<circle cx="20" cy="6.5" r="4" fill="' + h + '"/>'; front = '<path d="M11 18 Q11 8.5 20 8.5 Q29 8.5 29 18 Q26 13 20 13 Q14 13 11 18 Z" fill="' + h + '"/>'; }
+    var mouth = mood === 'happy' ? '<path d="M15.5 24 Q20 29.5 24.5 24 Z" fill="#7a2230" stroke="' + O + '" stroke-width="1" stroke-linejoin="round"/>'
+      : mood === 'sad' ? '<path d="M16 27 Q20 23.2 24 27" fill="none" stroke="' + O + '" stroke-width="1.4" stroke-linecap="round"/>'
+      : '<path d="M16.5 24.5 Q20 27 23.5 24.5" fill="none" stroke="' + O + '" stroke-width="1.4" stroke-linecap="round"/>';
+    var brows = mood === 'sad' ? '<path d="M14.5 16.6 L17.5 17.6 M25.5 16.6 L22.5 17.6" stroke="' + O + '" stroke-width="1.1" stroke-linecap="round"/>' : '';
+    var eyes = mood === 'happy' ? '<path d="M15 20 Q16.5 18.4 18 20 M22 20 Q23.5 18.4 25 20" fill="none" stroke="' + O + '" stroke-width="1.4" stroke-linecap="round"/>'
+      : '<circle cx="16.5" cy="20" r="1.4" fill="' + O + '"/><circle cx="23.5" cy="20" r="1.4" fill="' + O + '"/>';
+    return SVG + 'viewBox="0 0 40 40" class="face' + (mood ? ' ' + mood : '') + '" aria-hidden="true">' +
+      '<circle cx="20" cy="20" r="19" fill="' + f.bg + '"/>' +
+      '<path d="M7 40 Q8 30 20 30 Q32 30 33 40 Z" fill="#f7f0e1" opacity=".9"/>' + back +
+      '<ellipse cx="20" cy="20" rx="9" ry="10" fill="' + f.skin + '" stroke="' + O + '" stroke-width="1"/>' + front + brows + eyes +
+      '<circle cx="14" cy="23.5" r="1.6" fill="#e0707a" opacity=".35"/><circle cx="26" cy="23.5" r="1.6" fill="#e0707a" opacity=".35"/>' + mouth +
+      '<circle cx="20" cy="20" r="19" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.2"/></svg>';
+  }
+
   // Speed: build each drawing once, then hand out copies with a fresh id suffix.
   var cache = {};
   function cached(key, make) {
@@ -277,6 +308,7 @@
     face: function (type, value) { return cached('f' + type + value, function () { return face(type, value); }); },
     icon: function (type) { return cached('i' + type, function () { return icon(type); }); },
     back: function () { return cached('b', back); },
+    avatar: avatar,
     SHORT: SHORT
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

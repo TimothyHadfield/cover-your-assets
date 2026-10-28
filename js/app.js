@@ -14,6 +14,10 @@
   if (FX) FX.init({ game: 'cover-your-assets', accent: '#6ea8fe' });
   function fxPlay(n, o) { if (FX) FX.play(n, o); }
   var NAMES = ['You', 'Ann', 'Ben', 'Cat', 'Dan', 'Eve'];
+  // My stats (js/profile.js + js/cyaprofile.js) and the guided first game (js/coach.js + js/cyacoach.js): both optional
+  var PF = window.Profile || null, CP = window.CYAProfile || null, CO = window.COACH || null, CC = window.CYACoach || null;
+  if (PF && CP) CP.init(function () { startDaily(); }); else PF = null;
+  if (!CC) CO = null;
 
   // ---------- settings ----------
   var DEF = { players: 4, edition: 'classic', advanced: false, draft: false, teams: false, format: 'million', level: 'medium',
@@ -61,25 +65,86 @@
   // several people on one phone and the next one hasn't said "I'm X" yet: their cards stay hidden
   function covered(v) { return passCover && !online() && tableHumans().length > 1 && v.phase !== 'roundEnd' && v.phase !== 'gameOver'; }
 
-  function newGame() {
+  // G: this game's bookkeeping for My stats. helped = Hint or Undo used (not rated); daily = the day of a Daily game;
+  // tutorial = the guided first game (never counted); moved = you have made a move (leaving now counts as a loss)
+  var G = { helped: false, daily: null, tutorial: false, recorded: false, moved: false };
+  var undoStack = []; // the table before each of your moves this round (vs computers only, not in the Daily)
+  var review = false;  // round end / game over: showing the move list instead of the scores
+
+  // kind: '' (your own settings), 'daily' (today's deal, the same for everyone), 'tutorial' (the guided first game)
+  function newGame(kind) {
     if (online()) { var h = host; host = null; window.CYANet.leave(); if (h) h.stop(); }
-    var cfg = { players: S.players, edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format };
-    var st = E.newGame(cfg);
-    startHost(st);
+    recordGame(); // a game left after your first move counts as a loss
+    var daily = kind === 'daily' && PF ? dailyToday() : null, tut = kind === 'tutorial' && !!CC;
+    var cfg = daily ? CP.DAILY.cfg : tut ? CC.CFG : { players: S.players, edition: S.edition, advanced: S.advanced, draft: S.draft, teams: S.teams, format: S.format };
+    var st = E.newGame(cfg, daily ? daily.seed : tut ? CC.SEED : undefined);
+    startHost(st, daily || tut ? fixedSeats(cfg.players, daily ? CP.DAILY.level : CC.LEVEL) : null);
+    G = { helped: false, daily: daily ? daily.day : null, tutorial: tut, recorded: false, moved: false };
+    undoStack = []; review = false;
+    if (!tut && tour && tour.current() >= 0) tour.stop();
     fxPlay('shuffle'); [450, 560, 670].forEach(function (ms) { setTimeout(function () { fxPlay('cardDeal'); }, ms); });
     coach = { lost: 0, moves: 0 }; LS.set('cya.coach', coach);
     sel = []; mode = null; hint = null; lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 };
-    me = humans()[0] != null ? humans()[0] : 0;
+    me = tableHumans()[0] != null ? tableHumans()[0] : 0;
     save(); render();
     host.schedule();
   }
-  function startHost(st) {
+  // the Daily and the guided game: you in seat 1 against computers with the usual names, whatever Settings say
+  function fixedSeats(n, level) {
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(i === 0 ? { kind: 'human', level: level, name: S.seats[0] && S.seats[0].kind === 'human' ? S.seats[0].name : NAMES[0] } : { kind: 'bot', level: level, name: NAMES[i] });
+    return out;
+  }
+  function startHost(st, seats) {
     if (host) host.stop();
-    var seats = S.seats.slice(0, st.cfg.players).map(function (s) { return { kind: s.kind, level: s.level, name: s.name }; });
+    seats = (seats || S.seats.slice(0, st.cfg.players)).map(function (s) { return { kind: s.kind, level: s.level, name: s.name }; });
     host = new window.CYATransport.LocalHost(st, seats, { delay: delayFor });
     host.onChange(function (st2, info) { onChange(info); });
   }
-  function save() { if (host && !host.online) LS.set('cya.game', { state: host.state, seats: host.seats, me: me }); }
+  function save() { if (host && !host.online) LS.set('cya.game', { state: host.state, seats: host.seats, me: me, meta: G }); }
+
+  // ---------- My stats: one result per game ----------
+  function recordGame() {
+    if (!PF || !host || online() || G.recorded || G.tutorial || !host.state) return;
+    var st = host.state;
+    if (st.phase !== 'gameOver' && !G.moved) return; // never moved: nothing to count
+    G.recorded = true;
+    try {
+      var you = tableHumans()[0] != null ? tableHumans()[0] : 0;
+      var r = CP.result({ st: st, me: you, seats: host.seats, helped: G.helped, daily: !!G.daily });
+      if (G.daily) r.date = G.daily; // a Daily finished after midnight still belongs to the day it was dealt
+      PF.recordResult(r);
+    } catch (e) { /* stats must never break the game */ }
+    save();
+  }
+  function dailyToday() { var day = PF.daily.date(); return { day: day, seed: (PF.daily.seed(day, 'cover-your-assets') >>> 0) % 2147483646 + 1 }; }
+  function dailyDone() { try { return !!(PF && PF.daily.played()); } catch (e) { return false; } }
+  function startDaily() {
+    if (!PF) return;
+    if (PF.isOpen()) PF.closePanel();
+    var today = PF.daily.date();
+    if (host && !online() && G.daily === today && host.state.phase !== 'gameOver') { showTab('play'); return; } // carry on today's
+    if (dailyDone()) { PF.openPanel({ tab: 'daily' }); return; }
+    newGame('daily'); showTab('play');
+  }
+  function openStats(tab) { if (PF) PF.openPanel(tab ? { tab: tab } : undefined); }
+
+  // ---------- Undo (vs computers, not online, not in the Daily) ----------
+  function canUndo() {
+    if (!host || online() || G.daily || tableHumans().length !== 1 || !undoStack.length) return false;
+    var st = host.state, u = undoStack[undoStack.length - 1];
+    return st.phase !== 'gameOver' && st.phase !== 'roundEnd' && u.round === st.round;
+  }
+  function undo() {
+    if (!canUndo()) return;
+    var st = undoStack.pop(), seats = host.seats;
+    G.helped = true;
+    startHost(st, seats);
+    sel = []; mode = null; hint = null; lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 }; moods = {};
+    fxPlay('slide');
+    save(); render();
+    host.schedule();
+  }
 
   function seatName(s) {
     var nm = (host && host.seats[s] && host.seats[s].name) || NAMES[s] || 'Seat ' + (s + 1);
@@ -121,7 +186,10 @@
     var t = E.toAct(st);
     if (t >= 0 && host.seats[t].kind === 'human' && t !== me) { me = t; passCover = true; }
     sel = []; mode = null; hint = null;
+    if (st.phase !== 'roundEnd' && st.phase !== 'gameOver') review = false;
+    if (st.phase === 'gameOver') recordGame();
     save(); render();
+    if (CO) CO.update();
   }
   var passCover = false;
 
@@ -239,13 +307,16 @@
     if (host.busy) return;
     var v = V();
     if (S.coach && host.seats[me].kind === 'human') coachCheck(v, a);
+    var undoable = !online() && a.t !== 'next' && !G.daily && tableHumans().length === 1;
+    if (undoable) { undoStack.push(host.state); if (undoStack.length > 12) undoStack.shift(); }
     try {
       var r = host.submit(me, a);
+      if (!online() && a.t !== 'next') { G.moved = true; save(); }
       if (r && r.then) { // online: one move in flight at a time
         var h = host; h.busy = true; sel = []; render();
         r.then(function (x) { if (x && !x.ok) { h.busy = false; fxPlay('error'); if (x.message) toast(x.message); render(); } });
       }
-    } catch (e) { fxPlay('error'); toast('Not allowed: ' + e.message); }
+    } catch (e) { if (undoable) undoStack.pop(); fxPlay('error'); toast('Not allowed: ' + e.message); }
   }
 
   function sig(st, a) {
@@ -274,6 +345,7 @@
     var v = V();
     if (!v) { fxPrev = null; return renderLobby(); }
     var cues = fxCues(v);
+    updateMoods(v);
     if (FX) SF.perform(cues, FX, fxUI, 'pre'); // cards fly from where they were, before the redraw
     // opponents last among the table parts: their seats get whatever height the rest leaves
     renderStatus(v); renderPiles(v); renderStack(v); renderHand(v); renderBar(v); renderMsg(v); renderOpps(v); renderSide(v); renderOverlay(v);
@@ -350,7 +422,7 @@
   function renderStatus(v) {
     var tot = v.cfg.teams ? E.units(v, v.totals).vals[v.team[me]] : v.totals[me];
     var target = v.cfg.format === 'million' ? ' of $1M' : '';
-    $('status').innerHTML = (online() ? 'Room <b>' + esc(host.snap.code) + '</b> · ' : '') + 'Round ' + v.round + ' · <b>' + money(tot + 0) + '</b>' + target;
+    $('status').innerHTML = (online() ? 'Room <b>' + esc(host.snap.code) + '</b> · ' : G.daily ? 'Daily · ' : '') + 'Round ' + v.round + ' · <b>' + money(tot + 0) + '</b>' + target;
   }
 
   function oppOrder(v) { var o = []; for (var i = 1; i < v.cfg.players; i++) o.push((me + i) % v.cfg.players); return o; }
@@ -361,6 +433,31 @@
     var k = 1.64 + Math.min(5, Math.max(0, n - 1)) / 30;
     return Math.max(floor || 18, Math.min(cap, Math.floor((Math.min(W, H) - 6) / k)));
   }
+  // the players' faces react for a moment: a thief or a defender who kept the set smiles, the loser frowns
+  var moods = {}, moodSeen = { host: null, n: 0 }, moodT = null;
+  function updateMoods(v) {
+    var log = v.log || [], n = log.length;
+    if (moodSeen.host !== host || n < moodSeen.n) { moodSeen = { host: host, n: n }; moods = {}; return; }
+    var now = Date.now(), set = function (s, m) { if (s >= 0) moods[s] = { m: m, at: now, until: now + 2800 }; };
+    for (var i = moodSeen.n; i < n; i++) {
+      var e = log[i];
+      if (e.m === 'stole') { set(e.s, 'happy'); set(e.from, 'sad'); }
+      if (e.m === 'held') {
+        set(e.s, 'happy');
+        for (var j = i - 1; j >= 0; j--) if (log[j].m === 'challenge') { if (log[j].s !== e.s) set(log[j].s, 'sad'); break; }
+      }
+    }
+    moodSeen.n = n;
+    clearTimeout(moodT);
+    var next = Object.keys(moods).reduce(function (m, k) { return moods[k].until > now ? Math.min(m, moods[k].until) : m; }, Infinity);
+    if (next < Infinity) moodT = setTimeout(function () { if (host && V() && V().cards) renderOpps(V()); }, next - now + 30);
+  }
+  function moodOf(s) { var m = moods[s]; return m && m.until > Date.now() ? m : null; }
+  function faceHTML(s) {
+    var m = moodOf(s), fresh = m && Date.now() - m.at < 450 && (!T || T.animOn());
+    return '<span class="av' + (m ? ' ' + m.m : '') + (fresh ? ' react' : '') + '">' + A.avatar(s, m ? m.m : '') + '</span>';
+  }
+
   var oppW = 0;
   function renderOpps(v) {
     var wide = window.innerWidth >= 900, order = oppOrder(v);
@@ -399,7 +496,7 @@
       html += '<div class="opp' + (isTurn ? ' turn' : '') + (tgt.length ? ' target' : '') + (mate ? ' mate' : '') + '" data-seat="' + s + '" style="--oy:' + Math.round(t * t * 26) + 'px;--or:' + (-t * 7).toFixed(1) + 'deg">' +
         '<div class="ohand" aria-label="' + hn + ' cards in hand">' + backFanHTML(hn, bw) + '</div>' +
         '<div class="stk">' + stackHTML(v, s, w, false) + chip + '</div>' +
-        '<div class="nm"><span class="tbl-plate">' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span><span class="vals"><b class="tv">' + money(E.stackValue(v, s)) + '</b>' + (top ? '<span class="otop">top ' + money(E.setValue(v, top)) + '</span>' : '') + '</span></div></div>';
+        '<div class="nm"><span class="who">' + faceHTML(s) + '<span class="tbl-plate">' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span></span><span class="vals"><b class="tv">' + money(E.stackValue(v, s)) + '</b>' + (top ? '<span class="otop">top ' + money(E.setValue(v, top)) + '</span>' : '') + '</span></div></div>';
     });
     $('opps').innerHTML = html;
   }
@@ -517,6 +614,7 @@
     if (myTurn(v)) {
       var c = candidates(v);
       html += '<button class="btn ghost" data-act="hint">Hint</button>';
+      if (canUndo()) html += '<button class="btn ghost" data-act="undo">Undo</button>';
       if (v.acts > 0) html += '<button class="btn ghost" data-act="end">Done</button>';
       var pair = c.filter(function (a) { return a.t === 'pair'; })[0];
       if (pair) html += '<button class="btn" data-do="' + idx(c, pair) + '">Pair ' + money(sum(v, pair.cards)) + '</button>';
@@ -641,17 +739,19 @@
       if (mine) { var L3 = E.legal(v); ov._legal = L3; html += '<div class="row">' + L3.map(function (a, i) { return '<button class="btn" data-ov="L' + i + '">' + esc(describe(v, a)) + '</button>'; }).join('') + '</div>'; }
       html += '</div>';
     } else if (v.phase === 'roundEnd' || v.phase === 'gameOver') {
-      html = roundPanel(v);
+      html = review ? reviewPanel(v) : roundPanel(v);
     } else if (mode && mode.t === 'move') {
       html = '<div class="panel"><h2>Move which way?</h2><div class="row">' + mode.opts.map(function (a, i) { return '<button class="btn" data-ov="M' + i + '">' + esc(describe(v, a)) + '</button>'; }).join('') + '<button class="btn ghost" data-ov="cancel">Cancel</button></div></div>';
     }
     if (v.phase !== 'battle') lastSeen.plays = 0;
     // the panel pops in only when it first appears; later updates don't move it
-    var kind = html ? v.phase + (mode ? mode.t : '') : '';
+    var kind = html ? v.phase + (mode ? mode.t : '') + (review && /roundEnd|gameOver/.test(v.phase) ? 'review' : '') : '';
     if (html && ov.dataset.kind !== kind) html = html.replace('<div class="panel', '<div class="panel pop');
-    if (ov.dataset.kind !== kind) ov.dataset.compact = '';
+    var changed = ov.dataset.kind !== kind;
+    if (changed) ov.dataset.compact = '';
     ov.dataset.kind = kind;
     ov.innerHTML = html; ov.hidden = !html;
+    if (changed && /review$/.test(kind)) { var rv = ov.querySelector('.rv'); if (rv) rv.scrollTop = rv.scrollHeight; }
     fitOverlay(ov);
   }
   // a challenge or draft offer sits on the table above your hand so you can still see your cards;
@@ -679,9 +779,30 @@
     var title = v.phase === 'gameOver' ? (v.winner.seats.indexOf(me) >= 0 && host.seats[me].kind === 'human' ? 'You win!' : v.winner.seats.map(seatName).join(' & ') + (v.winner.seats.length > 1 || seatName(v.winner.seats[0]) === 'You' ? ' win' : ' wins')) : 'Round ' + v.round + ' done';
     var sub = v.phase === 'gameOver' ? 'Final totals.' : E.extraRound(v) ? (v.cfg.format === 'bestof2' ? 'Tied on round wins: one more round decides it.' : 'Tied at the top: one more round decides it.') : (v.cfg.format === 'million' ? 'First to $1,000,000 wins.' : v.cfg.format === 'three' ? 'Highest after 3 rounds.' : v.cfg.format === 'bestof2' ? 'First to win 2 rounds.' : '');
     var c = S.coach && coach.moves ? '<div class="sub" style="margin-top:8px">Coach: you left about <b>' + money(Math.round(coach.lost)) + '</b> on the table over ' + coach.moves + ' choices.</div>' : '';
+    // your fights this game, from the log (one person vs computers only)
+    if (CP && !online() && tableHumans().length === 1 && v.phase === 'gameOver') {
+      var f = CP.summary(v, me), bits = [];
+      bits.push(f.steals ? 'stole ' + f.steals + ' set' + (f.steals > 1 ? 's' : '') + ' (biggest ' + money(f.bestSteal) + ')' : 'stole nothing');
+      bits.push('fought off ' + f.kept + ' challenge' + (f.kept === 1 ? '' : 's'));
+      bits.push('lost ' + f.lost + ' set' + (f.lost === 1 ? '' : 's'));
+      c = '<div class="sub" style="margin-top:8px">You ' + bits.join(', ') + '.' + (G.helped ? ' Played with Hint or Undo: not rated.' : '') + '</div>' + c;
+    }
+    var extra = online() ? '' : '<button class="btn ghost" data-act="review">Review</button>' + (PF && v.phase === 'gameOver' && !G.tutorial ? '<button class="btn ghost pf-open" data-act="stats">My stats</button>' : '');
     return '<div class="panel scorepad"><h2>' + esc(title) + '</h2><div class="sub">' + sub + '</div><table class="scores"><tr><th>Player</th><th>Round</th><th>Total</th>' + (v.cfg.format === 'bestof2' ? '<th>Wins</th>' : '') + '</tr>' + rows + '</table>' + c +
       '<div class="row">' + (v.phase === 'gameOver' ? '<button class="btn" data-ov="new">' + (online() ? 'Leave room' : 'New game') + '</button>' :
-        online() && !host.snap.myTurn ? '<span class="sub">Waiting for ' + esc(seatName(host.snap.toAct[0])) + '…</span>' : '<button class="btn" data-ov="next">Next round</button>') + '</div></div>';
+        online() && !host.snap.myTurn ? '<span class="sub">Waiting for ' + esc(seatName(host.snap.toAct[0])) + '…</span>' : '<button class="btn" data-ov="next">Next round</button>') + extra + '</div></div>';
+  }
+  // Review: every move of this game, round by round; steals and kept sets stand out
+  function reviewPanel(v) {
+    var html = '', r = 0;
+    (v.log || []).forEach(function (e) {
+      if (/dealt$/.test(e.m)) { r++; html += '<li class="rv-h">Round ' + r + '</li>'; return; }
+      if (e.m === 'roundEnd' || e.m === 'gameOver') return;
+      var cls = e.m === 'stole' ? ' class="rv-steal"' : e.m === 'held' ? ' class="rv-held"' : '';
+      html += '<li' + cls + '>' + logText(v, e) + '</li>';
+    });
+    return '<div class="panel scorepad review"><h2>Review</h2><div class="sub">Every move this game, newest at the bottom.</div><ol class="rv">' + html + '</ol>' +
+      '<div class="row"><button class="btn" data-act="review">Back to the scores</button></div></div>';
   }
 
   // ---------- input ----------
@@ -704,6 +825,11 @@
     var x = ev.target.closest('[data-act]');
     if (x) {
       if (x.dataset.act === 'hint') return showHint();
+      if (x.dataset.act === 'undo') return undo();
+      if (x.dataset.act === 'stats') return openStats();
+      if (x.dataset.act === 'daily') return startDaily();
+      if (x.dataset.act === 'tutorial') return startTutorial();
+      if (x.dataset.act === 'review') { review = !review; render(); return; }
       if (x.dataset.act === 'end') return act({ t: 'end' });
     }
     var o = ev.target.closest('.opp, .pilebox');
@@ -742,6 +868,7 @@
     var v = V(), r = AI.rank(v, me);
     if (!r.length) return;
     hint = r[0];
+    if (!online() && !G.helped) { G.helped = true; save(); }
     if (v.phase === 'turn') sel = handIds(hint.a).slice();
     render();
   }
@@ -805,7 +932,9 @@
     html += row('Teams (4 or 6) <button class="q" data-q="teams">?</button>', sw('teams', S.teams, !(S.players === 4 || S.players === 6) || S.draft));
     html += row('Game length', '<select data-set="format">' + [['million', 'First to $1M'], ['quick', 'One round'], ['three', 'Three rounds'], ['bestof2', 'First to 2 round wins']].map(function (o) {
       return '<option value="' + o[0] + '"' + (o[0] === S.format ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>');
-    html += '<div class="row" style="justify-content:flex-start"><button class="btn" data-set-act="new">Start new game</button></div>';
+    html += '<div class="row" style="justify-content:flex-start"><button class="btn" data-set-act="new">Start new game</button>' +
+      (PF ? '<button class="btn ghost" data-act="daily">' + (dailyDone() ? 'Daily ✓' : 'Daily game') + '</button><button class="btn ghost pf-open" data-act="stats">' + PF.avatarSVG(PF.avatar, 20) + 'My stats</button>' : '') +
+      (CO ? '<button class="btn ghost" data-act="tutorial">Guided game</button>' : '') + '</div>';
     if (FX) html += '<div class="sidehead">Sound &amp; effects</div><div id="fxSet"></div>';
     html += '</div><div class="scol"><div class="sidehead">While playing</div>';
     html += row('Show odds', sw('odds', S.odds));
@@ -863,12 +992,13 @@
       return '<div class="c"><div class="card">' + A.face(r[0], r[1]) + '</div><b>' + esc(RL.TYPES[r[0]].name) + '</b><br>' + (r[1] ? money(r[1]) : 'action') + ' · ×' + r[2] + '</div>';
     }).join('');
     var total = cards.reduce(function (a, r) { return a + r[2]; }, 0);
-    $('rules').innerHTML =
+    $('rules').innerHTML = (CO ? '<div class="row" style="justify-content:flex-start;margin:0 0 6px"><button class="btn" data-act="tutorial">Play a guided first game</button></div>' : '') +
       '<h2>Goal</h2><p>Be the first to bank $1,000,000 across rounds by building a stack of matching pairs, and by stealing the top set off other players\' stacks.</p>' +
       '<h2>Deal</h2><ul><li>Classic deck: 4 cards each (5 cards with 2-3 players). New deck: 5 each. Advanced: 6.</li><li>Flip one card to start the discard pile. The player left of the dealer goes first.</li></ul>' +
       '<h2>On your turn, do one thing</h2><ul><li><b>Pair</b> two matching assets from your hand, or an asset with a wild (Silver or Gold). Two wilds never pair.</li><li><b>Take the top discard</b> if it pairs with a card in your hand.</li><li><b>Challenge</b> another player\'s top set by showing a matching card or a wild.</li><li><b>Discard</b> one card.</li></ul><p>Each new pair goes on top of your stack, crossed over the last one. Then draw back up to your hand size.</p>' +
       '<h2>Challenges</h2><ul><li>You need a set of your own first. A player\'s first set (the bottom one) is always safe.</li><li>The defender answers with a matching card or wild, then you, and so on. Whoever plays the last card wins the set and every card played.</li><li>After the fight, the challenger draws first, then the defender.</li></ul>' +
       '<h2>End of a round</h2><p>When the draw pile runs out, keep playing without drawing. Everyone must still pair, challenge or discard. When every hand is empty, add up each stack. Play more rounds until someone reaches $1,000,000; if two do, the higher total wins.</p>' +
+      '<h2>Help, Undo and My stats</h2><ul><li><b>Hint</b> shows the move the Hard computer would make. <b>Undo</b> takes back your last move (against computers, within the round; not in the Daily game).</li><li>A game where you used either counts in My stats as "with help" and doesn\'t change your rating. Leaving a game after your first move counts as a loss.</li><li><b>Daily game</b>: the same deal for everyone that day, you against three Medium computers, first to $1,000,000.</li></ul>' +
       '<h2>Cards in this deck (' + total + ')</h2><div class="cardlist">' + list + '</div>' +
       '<p style="color:var(--muted);font-size:12px;margin-top:14px">Rules written in our own words from the published rules; sources are listed in docs/rules-check.md on GitHub. All card art is original to this site.</p>';
   }
@@ -878,22 +1008,66 @@
     var saved = LS.get('cya.game', null);
     if (saved && saved.state && saved.state.cards) {
       try {
-        S.seats = saved.seats.map(function (s, i) { return Object.assign({}, S.seats[i] || {}, s); }).concat(S.seats.slice(saved.seats.length));
-        startHost(saved.state); me = saved.me || 0;
+        var m = saved.meta || {};
+        G = { helped: !!m.helped, daily: typeof m.daily === 'string' ? m.daily : null, tutorial: !!m.tutorial, recorded: !!m.recorded, moved: !!m.moved };
+        undoStack = []; review = false;
+        // the Daily and the guided game use their own seats; your Settings seats stay as they were
+        if (!G.daily && !G.tutorial) S.seats = saved.seats.map(function (s, i) { return Object.assign({}, S.seats[i] || {}, s); }).concat(S.seats.slice(saved.seats.length));
+        startHost(saved.state, saved.seats); me = saved.me || 0;
         lastSeen = { hand: [], sets: [], discardTop: null, plays: 0 }; sel = []; mode = null; hint = null;
         // several people on this phone: after a reload, cover the cards again until the right person taps
         var t = E.toAct(host.state); passCover = tableHumans().length > 1 && t >= 0 && host.seats[t].kind === 'human';
         if (passCover) me = t;
         host.schedule();
+        if (host.state.phase === 'gameOver') recordGame();
       } catch (e) { newGame(); }
-    } else newGame();
+    } else { firstVisit = true; newGame(); }
   }
+  var firstVisit = false;
+
+  // ---------- guided first game (js/coach.js + js/cyacoach.js) ----------
+  var tour = null;
+  function startTutorial() {
+    if (!CO) return;
+    if (PF && PF.isOpen()) PF.closePanel();
+    newGame('tutorial'); showTab('play');
+    tour.reset(); tour.start();
+  }
+  function setupCoach() {
+    if (!CO) return;
+    tour = CO.tour({
+      id: CC.ID,
+      steps: CC.steps({
+        view: function () { return host && !online() && G.tutorial ? V() : null; },
+        me: function () { return me; },
+        toAct: function () { return host && host.state ? E.toAct(host.state) : -1; }
+      }),
+      pauseIf: function () { return LS.get('cya.tab', 'play') !== 'play' || !host || online() || !G.tutorial || !$('overlay').hidden || (PF && PF.isOpen()); },
+      onFinish: function () { /* the rest of the game is a normal (uncounted) game vs Easy */ }
+    });
+    if (G.tutorial && host && !online()) tour.resume();
+    document.addEventListener('cya:tab', function (e) { if (e.detail !== 'play') CO.closeOffer(); CO.update(); });
+  }
+  function offerTutorial() {
+    if (!CO || !firstVisit || online() || CO.offered(CC.ID)) return;
+    CO.offer({ id: CC.ID, title: 'New to Cover Your Assets?', text: 'Play one guided game against Easy computers.', yes: 'Teach me', no: 'No thanks', onYes: startTutorial });
+  }
+
   function boot() {
     loadLocal();
+    setupCoach();
     var start = location.hash.slice(1) || LS.get('cya.tab', 'play');
     if (['play', 'table', 'lab', 'rules', 'settings'].indexOf(start) < 0) start = 'play';
     try { history.replaceState({ tab: start }, '', '#' + start); } catch (e) { /* ignore */ }
     showTab(start, true);
+    if (start === 'play') offerTutorial();
+    // home-screen app (js/pwa.js): reload for a new version only when nothing would be lost
+    if (window.PWA) window.PWA.safeToReload = function () {
+      if (online() || (PF && PF.isOpen()) || !$('tip').hidden) return false;
+      var a = document.activeElement; if (a && /INPUT|SELECT|TEXTAREA/.test(a.tagName)) return false;
+      var tab = LS.get('cya.tab', 'play');
+      return !host || host.state.phase === 'gameOver' || (tab !== 'play' && tab !== 'lab'); // the game in progress is saved
+    };
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 120); });
     // the same game open in two tabs: follow the newest move instead of playing two different games
@@ -912,6 +1086,7 @@
     window.addEventListener('focus', wake);
     document.addEventListener('pointerdown', wake, true);
   }
-  window.CYAApp = { money: money, pct: pct, scale: scale, esc: esc, LS: LS, toast: toast, TIPS: TIPS, get host() { return host; }, get me() { return me; }, newGame: newGame, render: render, useHost: useHost, endOnline: endOnline };
+  window.CYAApp = { money: money, pct: pct, scale: scale, esc: esc, LS: LS, toast: toast, TIPS: TIPS, get host() { return host; }, get me() { return me; }, newGame: newGame, render: render, useHost: useHost, endOnline: endOnline,
+    undo: undo, canUndo: canUndo, startDaily: startDaily, startTutorial: startTutorial, get meta() { return G; }, get tour() { return tour; } };
   boot();
 })();
