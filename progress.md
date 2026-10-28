@@ -75,6 +75,7 @@ Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked
 - (2026-10-21) "for a lot of the games the cards or board layout is too small to easily see what's going on ... Fix this so the view of what's happening and where everything is is very clear. Consider parts of the board that are dense in what's happening and if the user can reasonably see it."
 
 ## Traps
+- **Kits re-copied 2026-10-27 (kitfix):** game-coach 1.1.0 (rules tabs wrap in the kit now, so the style.css `.coach-rules-nav` override is redundant but harmless; a note beside a tall target keeps title + 2 lines + buttons) and game-pwa 1.3.0 (`data-extra` on the pwa.js tag caches files loaded later by script). Copies stay byte-identical to `../_coach` / `../_pwa`.
 - **online.js cache stamp (2026-10-27):** every import of `js/online.js` uses `?v=a3d0418b`, the `_online` content stamp. After a re-copy: put the new stamp from `node ../_online/tools/stamp.mjs` there, bump the importing file's `?v=` (and pwa.js `data-version`), then `node ../_online/tools/stamp.mjs --check .` must say OK.
 - Opponent seats are sized AFTER the rest of the table renders (`renderOpps` runs last in `render()`, measures the seat, redraws if `towerW` changes). Keep that order.
 - Playwright `click()` waits for animations, so computers move meanwhile; for timing tests click in-page (`el.click()`).
