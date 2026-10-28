@@ -49,3 +49,6 @@
 - **Verified:** `tests/advpick.test.js` 15/15 (failed first on the old engine); full `npm test` green; ladder with each advanced rule alone holds (400 games each); pwa-check 18/18; WebKit shots 393/320/659x393/1280/1440, sub-switches clicked in the page and the new game's cfg read back (advOff, 104 cards, 6-card hand).
 - **Skipped:** web "house rules" (no real source), practical settings (no gap).
 - **Open (Tim's call):** sub-switch labels, face position at 6p on phone.
+
+## 2026-10-28 — wave-3 kit sweep (pwa build 6)
+- game-coach 1.2.0 + game-pwa 1.4.0 copied; first-visit offer `place:'auto'` avoiding the hand (it covered the tab bar and hand before, measured); Lab/Table select arrows restored. Verified: npm test all green (engine 92, edge 28, advpick 15, ai 4, lab 6, fx 25, profile 19, online 20), pwa-check 18/18, offer rects at 393/320/659×393, Settings 320 no overflow, select styles read in WebKit, 393 screenshot looked at.

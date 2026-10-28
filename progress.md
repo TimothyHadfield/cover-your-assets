@@ -9,6 +9,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 ## Status
 | Part | State |
 |---|---|
+| Wave-3 kit sweep (pwa build 6, 2026-10-28) | Done. game-coach 1.2.0 (offer `place:'auto', avoid:['#hand']`) + game-pwa 1.4.0; offer had covered the tab bar + hand (393: 14040 px² / 9006 px²), now clear of both at 393×659/320×568/659×393; Settings 320 no sideways scroll; Lab + Table selects use `background-color` inline so they keep the dark-select arrow. |
 | Rules engine (classic 110-card deck, 2021 deck, advanced, 2-3p draft, teams house rule, 4 game lengths) | Done, 92 engine tests + 28 edge tests (`tests/edge.test.js`) |
 | Edge pass (2026-10-20) | Done: 48 weird scenarios, 12 failed on live, 12 fixed. See "Edge scenarios" below |
 | Computers easy / medium / hard (dollar-EV scorer) | Done; measured in Lab (hard 92% vs 3 medium, 4p) |

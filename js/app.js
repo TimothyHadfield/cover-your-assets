@@ -1074,7 +1074,7 @@
   }
   function offerTutorial() {
     if (!CO || !firstVisit || online() || CO.offered(CC.ID)) return;
-    CO.offer({ id: CC.ID, title: 'New to Cover Your Assets?', text: 'Play one guided game against Easy computers.', yes: 'Teach me', no: 'No thanks', onYes: startTutorial });
+    CO.offer({ id: CC.ID, title: 'New to Cover Your Assets?', text: 'Play one guided game against Easy computers.', yes: 'Teach me', no: 'No thanks', onYes: startTutorial, place: 'auto', avoid: ['#hand'] });
   }
 
   function boot() {

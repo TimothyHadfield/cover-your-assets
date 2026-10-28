@@ -53,7 +53,7 @@
     html += '<div class="row" style="justify-content:flex-start;margin:4px 0 8px">' +
       (T.players.length < 6 ? '<button class="btn sm ghost" data-tt="plus">+ Player</button>' : '') +
       (T.players.length > 2 ? '<button class="btn sm ghost" data-tt="minus">− Player</button>' : '') +
-      '<select data-tt-ed="1" style="background:var(--bg-soft);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:4px 6px"><option value="classic"' + (T.edition === 'classic' ? ' selected' : '') + '>Classic deck</option><option value="e2021"' + (T.edition === 'e2021' ? ' selected' : '') + '>New deck</option></select>' +
+      '<select data-tt-ed="1" style="background-color:var(--bg-soft);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:4px 6px"><option value="classic"' + (T.edition === 'classic' ? ' selected' : '') + '>Classic deck</option><option value="e2021"' + (T.edition === 'e2021' ? ' selected' : '') + '>New deck</option></select>' +
       '<button class="btn sm ghost" data-tt="reset">New game</button></div>';
     $('ttPlayers').innerHTML = html;
     var un = unseen(), uh = '';

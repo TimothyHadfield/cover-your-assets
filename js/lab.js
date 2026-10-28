@@ -28,7 +28,7 @@
   function fightBox() {
     var p = pool();
     var types = RL.assetTypes('classic');
-    var head = '<div class="ctrl">Set ' + '<select data-lab-sel="type" style="background:var(--bg-soft);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:3px 6px">' +
+    var head = '<div class="ctrl">Set ' + '<select data-lab-sel="type" style="background-color:var(--bg-soft);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:3px 6px">' +
       types.map(function (t) { return '<option value="' + t + '"' + (t === calc.type ? ' selected' : '') + '>' + RL.TYPES[t].short + '</option>'; }).join('') + '</select>' +
       seg('stage', [['early', 'Early'], ['mid', 'Middle'], ['late', 'Late']], calc.stage) + '</div>';
     var pw = O.atMost(p.U, p.m, calc.hand, calc.mine - 1);
