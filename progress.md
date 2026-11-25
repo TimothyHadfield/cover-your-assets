@@ -102,6 +102,7 @@ Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked
 ## Decisions
 - Two decks: Classic (2011-2018) default, New (2021+) with Speed Boat and advanced cards. Newest-printing names not modelled.
 - Teams = labelled house rule (no published source).
+- 2026-11-25 Catan-lessons pass (e622a90): game over keeps the table 4.5 s (fast 2.3, slow 6, test speed none) with the winner's plate / your stack glowing (`.champ`) and "X wins" in the message, then the final-totals panel; random first player via engine `cfg.firstTurn` (default 0 = Daily/guided unchanged; app + online `game.mjs` pick at random). Measured 4.50 s phone (normal) / 2.56 s laptop (fast) in WebKit, no page scroll at 393×659 / 1280×720.
 - Lab "Which sets get stolen?" = share of sets stolen at least once (fixed 10-20; it used to divide steals by sets, up to 113%). Sim bookkeeping lives in `tools/lab-stats.js`; `tests/lab.test.js` guards it.
 - Online: round-end "Next round" is pressed by the lowest person seat; computers do it if no person is left.
 - Online computers use the per-seat levels from Settings (`options.levels`).
