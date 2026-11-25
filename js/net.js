@@ -1,6 +1,6 @@
 /* Online rooms: wraps online.js (shared Firebase layer, loaded only when used) in the same
    host interface the Play tab already drives (viewFor / submit / onChange / seats). */
-import { makeGame } from "./game.mjs";
+import { makeGame } from "./game.mjs?v=3";
 
 const game = makeGame(window.CYAEngine, window.CYAAI);
 const RESUME_KEY = "online." + game.id;

@@ -56,7 +56,8 @@
     var st = {
       cfg: cfg, rng: (seed == null ? (Date.now() & 0x7fffffff) : seed) | 0,
       cards: R.buildDeck(cfg.edition, { advanced: advOn(cfg, 'cards'), players: cfg.players, draft: cfg.draft }),
-      round: 0, dealer: cfg.players - 2, totals: [], roundScores: [], roundWins: [], history: [],
+      // cfg.firstTurn (optional) = the seat that leads round 1; default seat 0
+      round: 0, dealer: ((cfg.firstTurn | 0) % cfg.players + 2 * cfg.players - 2) % cfg.players, totals: [], roundScores: [], roundWins: [], history: [],
       team: [], log: [], winner: null, seq: 0
     };
     for (var s = 0; s < cfg.players; s++) {

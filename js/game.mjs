@@ -16,7 +16,9 @@ export function makeGame(E, AI) {
     setup(n, options = {}, rng = Math.random, seats = []) {
       const cfg = Object.assign({}, options, { players: n });
       delete cfg.levels;
-      const st = E.newGame(cfg, Math.floor(rng() * 2147483647));
+      const seed = Math.floor(rng() * 2147483647);
+      cfg.firstTurn = Math.floor(rng() * n) % n; // random first player
+      const st = E.newGame(cfg, seed);
       st.people = Array.from({ length: n }, (_, i) => !!(seats[i] && seats[i].kind === "human"));
       st.levels = Array.from({ length: n }, (_, i) => {
         const l = options.levels && options.levels[i];

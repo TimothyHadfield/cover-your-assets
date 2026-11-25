@@ -77,7 +77,7 @@
     if (online()) { var h = host; host = null; window.CYANet.leave(); if (h) h.stop(); }
     recordGame(); // a game left after your first move counts as a loss
     var daily = kind === 'daily' && PF ? dailyToday() : null, tut = kind === 'tutorial' && !!CC;
-    var cfg = daily ? CP.DAILY.cfg : tut ? CC.CFG : { players: S.players, edition: S.edition, advanced: S.advanced, advOff: S.advOff.slice(), draft: S.draft, teams: S.teams, format: S.format };
+    var cfg = daily ? CP.DAILY.cfg : tut ? CC.CFG : { players: S.players, edition: S.edition, advanced: S.advanced, advOff: S.advOff.slice(), draft: S.draft, teams: S.teams, format: S.format, firstTurn: Math.floor(Math.random() * S.players) };
     var st = E.newGame(cfg, daily ? daily.seed : tut ? CC.SEED : undefined);
     startHost(st, daily || tut ? fixedSeats(cfg.players, daily ? CP.DAILY.level : CC.LEVEL) : null);
     G = { helped: false, daily: daily ? daily.day : null, tutorial: tut, recorded: false, moved: false };
@@ -346,6 +346,13 @@
     if (!host) return;
     var v = V();
     if (!v) { fxPrev = null; return renderLobby(); }
+    // the last play stays on the normal table a few seconds (winner's seat glowing) before the final
+    // scores: the ending is a moment, not a cut (Catan lesson, 2026-11-25)
+    if (v.phase === 'gameOver' && fxPrev && fxPrev.phase !== 'gameOver' && S.speed !== 'test') {
+      var fms = S.speed === 'fast' ? 2300 : S.speed === 'slow' ? 6000 : 4500;
+      finaleUntil = Date.now() + fms;
+      clearTimeout(finaleTimer); finaleTimer = setTimeout(function () { if (host && V() && V().phase === 'gameOver') render(); }, fms + 20);
+    } else if (v.phase !== 'gameOver') finaleUntil = 0;
     var cues = fxCues(v);
     updateMoods(v);
     if (FX) SF.perform(cues, FX, fxUI, 'pre'); // cards fly from where they were, before the redraw
@@ -357,6 +364,9 @@
 
   // ---------- effects: compare what you saw last with what you see now ----------
   var fxPrev = null, fxHost = null;
+  var finaleUntil = 0, finaleTimer = 0;
+  function inFinale(v) { return v.phase === 'gameOver' && Date.now() < finaleUntil; }
+  function isChamp(v, s) { return v.phase === 'gameOver' && !!v.winner && v.winner.seats.indexOf(s) >= 0; }
   function fxCues(v) {
     if (host !== fxHost) { fxHost = host; fxPrev = null; } // new game, reload or room: no replay
     var mine = online() ? function (s) { return s === me; } : function (s) { return !!host.seats[s] && host.seats[s].kind === 'human'; };
@@ -495,7 +505,7 @@
       } else if (tgt.length) chip = '<div class="chip" style="background:var(--accent)">' + (tgt[0].t === 'swap' ? 'Swap' : 'Move') + '</div>';
       // seats sit round the far side of the table: the outer ones a little lower and turned in
       var top = E.topSet(v, s), t = order.length > 1 ? oi / (order.length - 1) * 2 - 1 : 0, hn = O.handLen(v, s);
-      html += '<div class="opp' + (isTurn ? ' turn' : '') + (tgt.length ? ' target' : '') + (mate ? ' mate' : '') + '" data-seat="' + s + '" style="--oy:' + Math.round(t * t * 26) + 'px;--or:' + (-t * 7).toFixed(1) + 'deg">' +
+      html += '<div class="opp' + (isTurn ? ' turn' : '') + (isChamp(v, s) ? ' champ' : '') + (tgt.length ? ' target' : '') + (mate ? ' mate' : '') + '" data-seat="' + s + '" style="--oy:' + Math.round(t * t * 26) + 'px;--or:' + (-t * 7).toFixed(1) + 'deg">' +
         '<div class="ohand" aria-label="' + hn + ' cards in hand">' + (tight ? faceHTML(s) : '') + backFanHTML(hn, bw) + '</div>' +
         '<div class="stk">' + stackHTML(v, s, w, false) + chip + '</div>' +
         '<div class="nm"><span class="who">' + faceHTML(s) + '<span class="tbl-plate">' + esc(seatName(s)) + (mate ? ' ★' : '') + '</span></span><span class="vals"><b class="tv">' + money(E.stackValue(v, s)) + '</b>' + (top ? '<span class="otop">top ' + money(E.setValue(v, top)) + '</span>' : '') + '</span></div></div>';
@@ -654,6 +664,7 @@
       } else if (sel.length === 2) m = candidates(v).length ? 'Pair them, or challenge a 2nd set.' : 'Those two don\'t pair.';
       else m = v.acts > 0 ? 'Second action, or Done.' : 'Your turn';
     } else if (t >= 0 && v.phase === 'turn') m = esc(seatName(t)) + ' is playing…';
+    else if (inFinale(v)) m = '<span><b>' + esc(winTitle(v)) + '</b></span>';
     if (!m) {
       var last = v.log[v.log.length - 1];
       m = last ? logText(v, last) : '';
@@ -661,6 +672,7 @@
     $('msg').innerHTML = m.indexOf('<span') === 0 ? m : '<span>' + m + '</span>';
     $('msg').classList.toggle('mine', !hint && v.phase === 'turn' && t === me && host.seats[me].kind === 'human');
     $('mystack').classList.toggle('turn', v.phase === 'turn' && t === me);
+    $('mystack').classList.toggle('champ', isChamp(v, me));
   }
 
   function renderSide(v) {
@@ -740,6 +752,8 @@
       html = '<div class="panel"><h2>A Move card flipped up</h2><div class="sub">' + esc(t === me ? 'You choose' : seatName(t) + ' chooses') + ' what happens to ' + esc(tg === me ? 'your' : seatName(tg) + "'s") + ' stack.</div>';
       if (mine) { var L3 = E.legal(v); ov._legal = L3; html += '<div class="row">' + L3.map(function (a, i) { return '<button class="btn" data-ov="L' + i + '">' + esc(describe(v, a)) + '</button>'; }).join('') + '</div>'; }
       html += '</div>';
+    } else if (inFinale(v)) {
+      html = ''; // the table stays in view for a few seconds before the final scores
     } else if (v.phase === 'roundEnd' || v.phase === 'gameOver') {
       html = review ? reviewPanel(v) : roundPanel(v);
     } else if (mode && mode.t === 'move') {
@@ -771,6 +785,9 @@
     if (p.scrollHeight > p.clientHeight + 1) ov.style.paddingBottom = '';
   }
 
+  function winTitle(v) {
+    return v.winner.seats.indexOf(me) >= 0 && host.seats[me].kind === 'human' ? 'You win!' : v.winner.seats.map(seatName).join(' & ') + (v.winner.seats.length > 1 || seatName(v.winner.seats[0]) === 'You' ? ' win' : ' wins');
+  }
   function roundPanel(v) {
     var u = E.units(v, v.totals), r = E.units(v, v.roundScores), max = v.cfg.target;
     var rows = u.seats.map(function (seats, i) {
@@ -778,7 +795,7 @@
       return '<tr><td>' + esc(nm) + '<div class="meter"><i style="width:' + Math.min(100, u.vals[i] / max * 100) + '%"></i></div></td><td>' + money(r.vals[i]) + '</td><td><b>' + money(u.vals[i]) + '</b></td>' +
         (v.cfg.format === 'bestof2' ? '<td>' + (E.units(v, v.roundWins).vals[i] / seats.length) + '</td>' : '') + '</tr>';
     }).join('');
-    var title = v.phase === 'gameOver' ? (v.winner.seats.indexOf(me) >= 0 && host.seats[me].kind === 'human' ? 'You win!' : v.winner.seats.map(seatName).join(' & ') + (v.winner.seats.length > 1 || seatName(v.winner.seats[0]) === 'You' ? ' win' : ' wins')) : 'Round ' + v.round + ' done';
+    var title = v.phase === 'gameOver' ? winTitle(v) : 'Round ' + v.round + ' done';
     var sub = v.phase === 'gameOver' ? 'Final totals.' : E.extraRound(v) ? (v.cfg.format === 'bestof2' ? 'Tied on round wins: one more round decides it.' : 'Tied at the top: one more round decides it.') : (v.cfg.format === 'million' ? 'First to $1,000,000 wins.' : v.cfg.format === 'three' ? 'Highest after 3 rounds.' : v.cfg.format === 'bestof2' ? 'First to win 2 rounds.' : '');
     var c = S.coach && coach.moves ? '<div class="sub" style="margin-top:8px">Coach: you left about <b>' + money(Math.round(coach.lost)) + '</b> on the table over ' + coach.moves + ' choices.</div>' : '';
     // your fights this game, from the log (one person vs computers only)
