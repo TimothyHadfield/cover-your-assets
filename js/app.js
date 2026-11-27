@@ -482,7 +482,7 @@
     if (seat && seat.clientHeight > 40) {
       var free = seat.clientHeight - seat.querySelector('.ohand').offsetHeight - seat.querySelector('.nm').offsetHeight - 8;
       var w = towerW(seat.clientWidth - 4, free, most, wide ? (window.innerHeight < 820 ? 76 : 92) : 64,
-        wide ? (window.innerHeight < 820 ? 36 : 46) : (window.innerHeight < 460 ? 20 : 26));
+        wide ? (window.innerHeight < 820 ? 36 : 46) : (window.innerHeight < 460 ? 14 : window.innerHeight < 600 ? 18 : 26)); // fit pass: short screens let the towers shrink so the hand can stay readable
       if (w !== oppW) { oppW = w; oppsHTML(v, w); }
     }
     // each seat hugs its tower, so the free wood is at the far edge of the table, not between the cards
@@ -491,7 +491,7 @@
   }
   function oppsHTML(v, w) {
     var cands = candidates(v), html = '';
-    var wide = window.innerWidth >= 900, bw = wide ? (window.innerHeight < 820 ? 22 : 28) : 15;
+    var wide = window.innerWidth >= 900, bw = wide ? (window.innerHeight < 820 ? 22 : 28) : window.innerHeight < 460 ? 12 : 15;
     var order = oppOrder(v), tight = !wide && $('opps').classList.contains('tight'); // many seats on a phone: the face moves beside the fanned backs
     order.forEach(function (s, oi) {
       var tgt = cands.filter(function (a) { return (a.t === 'challenge' || a.t === 'swap' || a.t === 'move') && a.target === s; });
@@ -579,6 +579,8 @@
     // held like real cards: a fan along the bottom edge, ends dipping and turned out a little
     var W = Math.min($('hand').clientWidth || 9999, document.documentElement.clientWidth - 20), n = h.length, wide = window.innerWidth >= 900;
     var cw = wide ? (window.innerHeight < 820 ? 92 : 118) : Math.min(84, Math.max(56, Math.floor(W / (1 + .86 * (Math.max(4, n) - 1)))));
+    // fit pass: at least 77px (its $ value 12px) while each card still shows 55% of itself in the fan
+    if (!wide) cw = Math.max(cw, Math.min(77, Math.floor(W / (1 + .55 * (Math.max(4, n) - 1)))));
     var hh = $('hand').clientHeight; if (hh > 40) cw = Math.min(cw, Math.floor((hh - 20) * 63 / 88)); // never taller than the row CSS gives it
     var L = T ? T.fanLayout(n, { width: W, cardW: cw, cardH: cw * 88 / 63, spread: wide ? .82 : .9, maxRot: 12 }) : [];
     var drop = L.reduce(function (m, p) { return Math.max(m, p.y); }, 0);
@@ -778,11 +780,23 @@
     if (!p || (k.indexOf('battle') !== 0 && k.indexOf('offer') !== 0)) return;
     var hand = $('hand').getBoundingClientRect(), o = ov.getBoundingClientRect();
     if (!hand.height) return;
-    var room = o.bottom - hand.top + 4;
-    if (ov.dataset.compact === '1') p.classList.add('compact');
+    var top = hand.top; // the cards' real top edge (the fan sits low in its row), so the panel may use the row's empty top
+    var cards = Array.prototype.slice.call($('hand').querySelectorAll('.card'));
+    cards.forEach(function (c) { c.style.animation = 'none'; }); // where they rest, not mid deal-in
+    var tops = cards.map(function (c) { return c.getBoundingClientRect().top; });
+    cards.forEach(function (c) { c.style.animation = ''; });
+    if (tops.length) top = Math.max(hand.top, Math.min.apply(null, tops));
+    var room = o.bottom - top + 4;
     ov.style.paddingBottom = room + 'px';
-    if (p.scrollHeight > p.clientHeight + 1 && !p.classList.contains('compact')) { p.classList.add('compact'); ov.dataset.compact = '1'; }
-    if (p.scrollHeight > p.clientHeight + 1) ov.style.paddingBottom = '';
+    // fit pass (2026-11-27): the fight's cards as big as the room above your hand allows (--fw, 84px cap).
+    // The set sits beside the fight (compact) only when stacked can't hold 56px cards; once compact, it stays so this fight.
+    var fits = function (w) { p.style.setProperty('--fw', w + 'px'); return p.scrollHeight <= p.clientHeight + 1 && p.scrollWidth <= p.clientWidth + 1; };
+    var best = function (lo, hi) { if (!fits(lo)) return 0; while (lo < hi) { var m = Math.ceil((lo + hi) / 2); if (fits(m)) lo = m; else hi = m - 1; } return lo; };
+    p.classList.add('sized');
+    var w = ov.dataset.compact === '1' ? 0 : best(56, 84);
+    if (!w) { p.classList.add('compact'); ov.dataset.compact = '1'; w = best(42, 84); }
+    if (!w) { ov.style.paddingBottom = ''; w = 42; } // no room above the hand at all: smallest cards, the panel covers as little as it can
+    p.style.setProperty('--fw', w + 'px');
   }
 
   function winTitle(v) {

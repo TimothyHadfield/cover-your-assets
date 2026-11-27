@@ -1,7 +1,7 @@
 # Cover Your Assets — progress
 
 ## START HERE
-Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-10-28 (wave 3, build 5).
+Read this file, then `CLAUDE.md`, then `docs/rules-check.md` and `docs/ideas.md`. Last updated 2026-11-27 (fit pass, pwa build 8).
 
 ## Goal right now
 Phase-2 games project: exact rules, play vs computers or online players, hint, odds, real-table tracker, data lab, original art. Built and live; waiting on Tim's feedback.
@@ -9,6 +9,7 @@ Phase-2 games project: exact rules, play vs computers or online players, hint, o
 ## Status
 | Part | State |
 |---|---|
+| Fit pass 2026-11-27 (pwa build 8) | Done. Tim: "make sure that the user can actually see the full screen and everything". New `tests/fit-ui.mjs` (+ `tests/fit-fixture.js`: seeded 6-player late round, long names, stacks 4-7 sets, 11-card discard, you answering a challenge; plus your-turn and early 4p) at 393x659 / 320x568 / 659x393 / 1280x800 / 1440x900 in WebKit: 48 failures on the old build, 0 now (1035 checks). Fixed: challenge-panel cards sized to the room above your hand (393: 42 -> 76px, $ value 6.7 -> 12.2px; sideways 42 -> 49px with odds + buttons beside the cards so the panel no longer covers the hand); hand cards 77px on SE and sideways (values 10.9 / 9.6 -> 12.3px); sideways phone puts hand + deck/discard in one row (discard 40 -> 76px, value 6.4 -> 12.1px), your stack + buttons above; pile count badges 11 -> 12px; the rising draw pile no longer covers the first seat's money. Run: `node tests/fit-ui.mjs [--shots dir]` (serves itself, port 8830) |
 | Wave-3 kit sweep (pwa build 6, 2026-10-28) | Done. game-coach 1.2.0 (offer `place:'auto', avoid:['#hand']`) + game-pwa 1.4.0; offer had covered the tab bar + hand (393: 14040 px² / 9006 px²), now clear of both at 393×659/320×568/659×393; Settings 320 no sideways scroll; Lab + Table selects use `background-color` inline so they keep the dark-select arrow. |
 | Rules engine (classic 110-card deck, 2021 deck, advanced, 2-3p draft, teams house rule, 4 game lengths) | Done, 92 engine tests + 28 edge tests (`tests/edge.test.js`) |
 | Edge pass (2026-10-20) | Done: 48 weird scenarios, 12 failed on live, 12 fixed. See "Edge scenarios" below |
@@ -103,6 +104,7 @@ Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked
 - Two decks: Classic (2011-2018) default, New (2021+) with Speed Boat and advanced cards. Newest-printing names not modelled.
 - Teams = labelled house rule (no published source).
 - 2026-11-25 Catan-lessons pass (e622a90): game over keeps the table 4.5 s (fast 2.3, slow 6, test speed none) with the winner's plate / your stack glowing (`.champ`) and "X wins" in the message, then the final-totals panel; random first player via engine `cfg.firstTurn` (default 0 = Daily/guided unchanged; app + online `game.mjs` pick at random). Measured 4.50 s phone (normal) / 2.56 s laptop (fast) in WebKit, no page scroll at 393×659 / 1280×720.
+- 2026-11-27 fit pass: challenge/offer panel sizes its cards in `fitOverlay` (`--fw`, binary search 42-84px; stacked layout if 56px+ fits, else compact side-by-side, sticky per fight). Phone hand cards min 77px while each still shows 55% in the fan. Short screens let opponents' towers shrink further (floor 14px sideways, 18px under 600px tall) so the hand stays readable; opponents' fanned backs 12px sideways. Values on the towers are carried by the "top $X" labels.
 - Lab "Which sets get stolen?" = share of sets stolen at least once (fixed 10-20; it used to divide steals by sets, up to 113%). Sim bookkeeping lives in `tools/lab-stats.js`; `tests/lab.test.js` guards it.
 - Online: round-end "Next round" is pressed by the lowest person seat; computers do it if no person is left.
 - Online computers use the per-seat levels from Settings (`options.levels`).
@@ -120,6 +122,7 @@ Passed already: double taps, reloads mid-fight, Back, settings mid-game, blocked
 
 - Improvement pass: avatar faces' look, coach steps and install/offline only checked headless (WebKit 393/1280), not on a real iPhone. `.gitattributes` (shared) not updated with -text for the new kit files.
 
+- Fit pass (2026-11-27): iPhone SE (320x568) keeps its 50px discard ($ value ~8px) and 44px challenge cards (~7px): no height to spare without cutting the seats; sideways challenge cards 49px (~7.8px). The set's value is always in the panel text (13px). Challenge panel still covers the seats on phones (as before). Sideways phone towers are now ~15px slivers (values in labels). 6-card hands (advanced) not in the fixture. Headless WebKit only, not a real iPhone.
 - Wave 3: per-rule advanced picks, videos and 6-player phone faces checked headless only (WebKit 393/320/659x393/1280/1440). Sources for "house rules" beyond the rulebook (Safe Top, No Wilds Round) look like SEO filler, so none were built.
 
 ## Rejected / parked

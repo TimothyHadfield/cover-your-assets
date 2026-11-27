@@ -627,3 +627,29 @@ select { padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg x
   .panel.scorepad .row { margin-top: 6px; }
   .panel.scorepad.review .rv { max-height: 52vh; }
 }
+
+/* ---------- fit pass (2026-11-27): the numbers you decide with read at 12px+ on every screen ---------- */
+.pile .tbl-badge { font-size: 12px; line-height: 17px; }
+/* a full draw pile rises a few px: the seats' money stays drawn above it */
+.opp .nm { position: relative; z-index: 7; }
+/* challenge / draft-offer panel: js (fitOverlay) sets --fw, the biggest card the room above your hand allows */
+.panel.mat.sized .fight .card, .panel.mat.sized .fight .slot0 { width: var(--fw); --card-w: var(--fw); }
+.panel.mat.sized.compact .fight .card + .card { margin-left: calc(var(--fw) * -.43); }
+.panel.mat.sized.compact .fight .lane .who { max-width: calc(var(--fw) * 1.2); }
+/* phone sideways: odds and buttons beside the cards, so the panel fits above your hand */
+@media (max-height: 460px) and (orientation: landscape) {
+  .panel.mat.sized.compact { max-width: 640px; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; }
+  .panel.mat.sized.compact > .fight { grid-row: 3 / span 2; }
+  .panel.mat.sized.compact > .odds-line, .panel.mat.sized.compact > .row { grid-column: 3; text-align: center; }
+  .panel.mat.sized.compact > .odds-line { align-self: end; }
+  .panel.mat.sized.compact > .row { align-self: start; }
+}
+/* iPhone SE size: the hand row tall enough for 77px cards (their $ value 12px) */
+@media (max-height: 600px) and (max-width: 899px) and (orientation: portrait) { .hand { height: 128px; } }
+/* phone sideways: hand and deck/discard share the big row (you pair between them); your stack and the buttons above */
+@media (max-height: 460px) and (max-width: 899px) and (orientation: landscape) {
+  .board { grid-template-rows: minmax(0, 1fr) auto auto; grid-template-areas: "opps opps" "stack bar" "hand center"; }
+  .hand { height: 128px; }
+  .center:not(.drafting) .pile, .center:not(.drafting) .pile .slot { width: 76px; }
+  .center:not(.drafting) .pile .slot { --card-w: 76px; }
+}

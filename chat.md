@@ -52,3 +52,9 @@
 
 ## 2026-10-28 — wave-3 kit sweep (pwa build 6)
 - game-coach 1.2.0 + game-pwa 1.4.0 copied; first-visit offer `place:'auto'` avoiding the hand (it covered the tab bar and hand before, measured); Lab/Table select arrows restored. Verified: npm test all green (engine 92, edge 28, advpick 15, ai 4, lab 6, fx 25, profile 19, online 20), pwa-check 18/18, offer rects at 393/320/659×393, Settings 320 no overflow, select styles read in WebKit, 393 screenshot looked at.
+
+## 2026-11-27 — fit pass (pwa build 8)
+- **Asked (Tim, all games):** "make sure that the user can actually see the full screen and everything ... spacing, sizing".
+- **Built:** challenge panel cards sized to the room above the hand (phone 42 -> 76px); hand cards 77px on SE and sideways; sideways phone layout: hand + deck/discard share the big row, stack + buttons above, challenge odds/buttons beside the cards; count badges 12px; seat money drawn above the rising deck; towers may shrink more on short screens.
+- **Verified:** new `tests/fit-ui.mjs` (6p late round, long names, tall stacks, discard, challenge; turn; early 4p; 5 sizes, WebKit): 48 fails on the old build, 0 now (1035 checks). `npm test` green, pwa-check 18/18. Screenshots looked at (393/320/sideways/1280/1440).
+- **Open:** SE discard and SE/sideways challenge cards stay below 12px values (no height); real iPhone.
